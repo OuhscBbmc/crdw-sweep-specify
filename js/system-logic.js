@@ -109,9 +109,9 @@ const SystemLogic = (function () {
         icd9:  'dictionary-dx.csv'  // same file, filter by vocabulary_id
       },
       medication: {
-        epic:       'dictionary-medication-epic.csv',
-        meditech:   'dictionary-medication-meditech.csv',
-        centricity: 'dictionary-medication-centricity.csv'
+        epic:       'dictionary-medication.csv',
+        meditech:   'dictionary-medication.csv',
+        centricity: 'dictionary-medication.csv'
       },
       lab: {
         epic:     'dictionary-lab-epic.csv',

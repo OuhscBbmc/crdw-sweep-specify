@@ -505,6 +505,13 @@ const DictApp = (function () {
           if (vocab === 'ICD9CM' && !systems.includes('icd9')) return;
         }
 
+        // For medication, the combined file holds all sources; filter by source_db
+        let rowSource = source;
+        if (type === 'medication' && row.source_db) {
+          rowSource = row.source_db.toLowerCase();
+          if (!systems.includes(rowSource)) return;
+        }
+
         const rowKey = file + ':' + idx;
 
         // Default desired = false. Only keyword matching or user clicks set it true.
@@ -514,7 +521,7 @@ const DictApp = (function () {
 
         merged.push({
           ...row,
-          _source: source,
+          _source: rowSource,
           _rowKey: rowKey,
           desired: isDesired,
           category: state.categories[type][rowKey] || row.category || '',
@@ -903,16 +910,14 @@ const DictApp = (function () {
 
   // ---- Medication Filters ----
   function populateMedFilters(data) {
-    var classes = new Set();
-    var subclasses = new Set();
+    var routes = new Set();
     var sources = new Set();
     data.forEach(function (row) {
-      if (row.pharmaceutical_class) classes.add(row.pharmaceutical_class);
-      if (row.pharmaceutical_subclass) subclasses.add(row.pharmaceutical_subclass);
+      if (row.route && row.route !== 'NULL') routes.add(row.route);
       if (row._source) sources.add(row._source);
     });
-    populateSelect('filter-pharm-class', Array.from(classes).sort(), 'All Classes');
-    populateSelect('filter-pharm-subclass', Array.from(subclasses).sort(), 'All Subclasses');
+    populateSelect('filter-pharm-class', Array.from(routes).sort(), 'All Routes');
+    populateSelect('filter-pharm-subclass', [], 'N/A');
     populateSelect('filter-source-system', Array.from(sources).sort(), 'All Systems');
 
     ['filter-pharm-class', 'filter-pharm-subclass', 'filter-source-system'].forEach(function (id) {
@@ -937,8 +942,7 @@ const DictApp = (function () {
   function applyMedFilters() {
     var table = state.tables.medication;
     if (!table) return;
-    var classFilter = document.getElementById('filter-pharm-class').value.toLowerCase();
-    var subclassFilter = document.getElementById('filter-pharm-subclass').value.toLowerCase();
+    var routeFilter = document.getElementById('filter-pharm-class').value.toLowerCase();
     var sourceFilter = document.getElementById('filter-source-system').value.toLowerCase();
 
     // Clear and add custom filter
@@ -949,8 +953,7 @@ const DictApp = (function () {
       if (settings.nTable.id !== 'table-medication') return true;
       var row = state.data.medication[dataIndex];
       if (!row) return true;
-      if (classFilter && (row.pharmaceutical_class || '').toLowerCase() !== classFilter) return false;
-      if (subclassFilter && (row.pharmaceutical_subclass || '').toLowerCase() !== subclassFilter) return false;
+      if (routeFilter && (row.route || '').toLowerCase() !== routeFilter) return false;
       if (sourceFilter && (row._source || '').toLowerCase() !== sourceFilter) return false;
       return true;
     };
