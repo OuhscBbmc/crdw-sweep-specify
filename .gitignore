@@ -1,0 +1,22 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Node (if ever used)
+node_modules/
+
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+
+# Don't commit wrangler config with secrets
+wrangler.toml

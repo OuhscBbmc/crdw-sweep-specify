@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRDW Sweep &amp; Specify</title>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ---- Header ---- -->
+  <header class="app-header">
+    <h1>CRDW Sweep &amp; Specify</h1>
+    <span class="subtitle">OUHSC BBMC &mdash; CDW Dictionary Metadata Generator</span>
+    <button class="btn-settings" onclick="DictApp.openSettings()" title="AI Settings">
+      &#9881; Settings
+    </button>
+  </header>
+
+  <!-- ---- Settings Modal ---- -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="modal-close" onclick="DictApp.closeSettings()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-description">
+          The AI Expand feature uses Claude to generate comprehensive keyword lists from natural language
+          (e.g., "all GLP-1 receptor agonists" &rarr; every brand name, generic, and variant).
+          Enter your Anthropic API key below to enable it.
+        </p>
+
+        <div class="settings-group">
+          <label for="settings-email">Your OU Email</label>
+          <input type="email" id="settings-email" placeholder="jdoe@ouhsc.edu"
+                 autocomplete="email">
+          <span class="settings-hint">Required for team proxy access. Your email must be on the approved list. Stored only in your browser.</span>
+        </div>
+
+        <div class="settings-group">
+          <label for="settings-apikey">Anthropic API Key</label>
+          <input type="password" id="settings-apikey" placeholder="sk-ant-api03-..."
+                 autocomplete="off" spellcheck="false">
+          <span class="settings-hint">
+            Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a>.
+            Stored only in your browser's local storage &mdash; never sent to our server.
+            Cost: ~$0.008 per AI Expand query (~1 cent).
+          </span>
+        </div>
+
+        <div class="settings-divider">
+          <span>OR use a shared team proxy</span>
+        </div>
+
+        <div class="settings-group">
+          <label for="settings-worker">Team Proxy URL (optional)</label>
+          <input type="url" id="settings-worker" placeholder="https://cdw-dict-proxy.your-team.workers.dev"
+                 autocomplete="off">
+          <span class="settings-hint">
+            If your team has deployed a shared Cloudflare Worker proxy, paste its URL here.
+            This avoids each researcher needing their own API key.
+            The proxy holds a shared API key server-side.
+          </span>
+        </div>
+
+        <div class="settings-status" id="settings-status"></div>
+
+        <div class="settings-divider">
+          <span>Send to CRDW (GitHub)</span>
+        </div>
+
+        <p class="modal-description">
+          Configure GitHub access to push SS files directly to your project's CRDW repo
+          (e.g. <code>data-public/metadata/ss-dx.csv</code>).
+        </p>
+
+        <div class="settings-group">
+          <label for="settings-gh-token">GitHub Personal Access Token</label>
+          <input type="password" id="settings-gh-token" placeholder="ghp_..."
+                 autocomplete="off" spellcheck="false">
+          <span class="settings-hint">
+            Create a token at <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens</a>
+            with <strong>repo</strong> scope. Stored only in your browser.
+          </span>
+        </div>
+
+        <div class="settings-group">
+          <label for="settings-gh-org">GitHub Org / Owner</label>
+          <input type="text" id="settings-gh-org" placeholder="e.g., OuhscBbmc"
+                 autocomplete="off">
+          <span class="settings-hint">The GitHub organization or username that owns the project repos.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="DictApp.closeSettings()">Cancel</button>
+        <button class="btn btn-primary" onclick="DictApp.testAiConnection()">Test Connection</button>
+        <button class="btn btn-success" onclick="DictApp.saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- Project Setup Bar ---- -->
+  <div class="setup-bar">
+    <div class="setup-group">
+      <label for="project-name">Project Name</label>
+      <input type="text" id="project-name" placeholder="e.g., smith-lung-cancer-1">
+    </div>
+    <div class="setup-group">
+      <label for="date-start">Date Start</label>
+      <input type="date" id="date-start" value="2020-01-01">
+    </div>
+    <div class="setup-group">
+      <label for="date-end">Date End</label>
+      <input type="date" id="date-end" value="2025-12-31">
+    </div>
+    <div class="setup-group">
+      <label>Visit Context</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" id="ctx-outpatient" checked> Outpatient</label>
+        <label><input type="checkbox" id="ctx-inpatient" checked> Inpatient</label>
+      </div>
+    </div>
+    <div class="setup-group">
+      <label>Active Systems</label>
+      <div class="system-badges" id="active-systems">
+        <!-- Populated by JS based on date/context -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- Tab Navigation ---- -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="dx">
+      Diagnoses <span class="badge" id="badge-dx">0</span>
+    </button>
+    <button class="tab-btn" data-tab="medication">
+      Medications <span class="badge" id="badge-medication">0</span>
+    </button>
+    <button class="tab-btn" data-tab="lab">
+      Labs <span class="badge" id="badge-lab">0</span>
+    </button>
+    <button class="tab-btn" data-tab="location">
+      Locations <span class="badge" id="badge-location">0</span>
+    </button>
+  </nav>
+
+  <!-- ---- Diagnoses Tab ---- -->
+  <div class="tab-content active" id="tab-dx">
+    <div class="search-action-bar">
+      <div class="keyword-search-wrapper" id="kw-wrapper-dx">
+        <span class="search-icon">&#128269;</span>
+        <div class="keyword-chips" id="kw-chips-dx"></div>
+        <input type="text" id="search-dx"
+               placeholder="Type keyword + Enter (e.g. breast, ovar*, C50)"
+               class="keyword-input">
+      </div>
+      <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('dx')" title="Clear all keywords" style="display:none" id="btn-clear-kw-dx">&#10005; Clear</button>
+      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('dx')">&#9733; AI Expand</button>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('dx')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('dx')">Uncheck All</button>
+      </div>
+      <button class="btn btn-success" onclick="DictApp.downloadCsv('dx')" title="Downloads all matching rows. Each row has a desired column (TRUE/FALSE) you can edit.">&#8681; Download Matching Rows</button>
+      <button class="btn btn-crdw" onclick="DictApp.sendToCrdw('dx')" title="Push SS files directly to the project's GitHub repo">&#9654; Send to CRDW</button>
+    </div>
+    <div class="search-help">
+      <button class="search-help-toggle" onclick="this.parentElement.classList.toggle('open')">
+        How to search <span class="toggle-arrow">&#9660;</span>
+      </button>
+      <div class="search-help-content">
+        <ul>
+          <li><strong>Add a keyword:</strong> Type a word and press <kbd>Enter</kbd> or <kbd>,</kbd> &mdash; it becomes a filter chip.</li>
+          <li><strong>Multiple keywords:</strong> Add as many chips as you need. Rows matching <em>any</em> keyword are shown (OR logic).</li>
+          <li><strong>Wildcard:</strong> Use <code>*</code> for partial matching &mdash; e.g. <code>ovar*</code> matches "ovary", "ovarian", etc.</li>
+          <li><strong>Paste a list:</strong> Paste comma-separated terms (e.g. <code>breast, ovar*, C50</code>) and each becomes its own chip.</li>
+          <li><strong>Remove a chip:</strong> Click the &times; on any chip, or press <kbd>Backspace</kbd> when the input is empty.</li>
+          <li><strong>AI Expand:</strong> Click the <em>&#9733; AI Expand</em> button and describe what you need in plain language (e.g. &ldquo;all diagnoses related to hypertension&rdquo;). The AI will generate a comprehensive list of search keywords &mdash; including related terms you might not think of &mdash; and add them as chips automatically. Requires an API key (see Settings).</li>
+          <li><strong>Desired column:</strong> All matching rows default to <em>checked</em>. Uncheck any you don't want. The downloaded CSV includes all matching rows with a <code>desired</code> column (TRUE/FALSE).</li>
+          <li><strong>Category column:</strong> Click any row's Category cell to type a free-text label (e.g. "obesity-related", "age-related"). Categories are saved in the CSV so you can group rows by purpose.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ai-panel" id="ai-panel-dx">
+      <textarea id="ai-input-dx" placeholder="Describe what diagnoses you need, e.g. 'all types of diabetes including type 1 and type 2'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('dx')">Generate Keywords</button>
+        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('dx')">Cancel</button>
+        <span class="ai-status" id="ai-status-dx"></span>
+        <span class="ai-hint">Tip: Be specific about what codes you need. The AI will generate comprehensive search keywords.</span>
+      </div>
+    </div>
+    <div class="status-bar" id="status-dx">
+      <span class="stat">Total in dictionary: <span class="stat-value" id="total-dx">0</span></span>
+      <span class="stat">Matching filter: <span class="stat-value" id="visible-dx">0</span></span>
+      <span class="stat">Checked (desired): <span class="desired-count" id="desired-dx">0</span></span>
+    </div>
+    <table id="table-dx" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Desired</th>
+          <th>Concept ID</th>
+          <th>Vocabulary</th>
+          <th>ICD Code</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Keyword Matched</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ---- Medications Tab ---- -->
+  <div class="tab-content" id="tab-medication">
+    <div class="search-action-bar">
+      <div class="keyword-search-wrapper" id="kw-wrapper-medication">
+        <span class="search-icon">&#128269;</span>
+        <div class="keyword-chips" id="kw-chips-medication"></div>
+        <input type="text" id="search-medication"
+               placeholder="Type keyword + Enter (e.g. metformin, insulin*)"
+               class="keyword-input">
+      </div>
+      <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('medication')" title="Clear all keywords" style="display:none" id="btn-clear-kw-medication">&#10005; Clear</button>
+      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('medication')">&#9733; AI Expand</button>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('medication')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('medication')">Uncheck All</button>
+      </div>
+      <button class="btn btn-success" onclick="DictApp.downloadCsv('medication')" title="Downloads all matching rows. Each row has a desired column (TRUE/FALSE) you can edit.">&#8681; Download Matching Rows</button>
+      <button class="btn btn-crdw" onclick="DictApp.sendToCrdw('medication')" title="Push SS files directly to the project's GitHub repo">&#9654; Send to CRDW</button>
+    </div>
+    <div class="search-help">
+      <button class="search-help-toggle" onclick="this.parentElement.classList.toggle('open')">
+        How to search <span class="toggle-arrow">&#9660;</span>
+      </button>
+      <div class="search-help-content">
+        <ul>
+          <li><strong>Add a keyword:</strong> Type a word and press <kbd>Enter</kbd> or <kbd>,</kbd> &mdash; it becomes a filter chip.</li>
+          <li><strong>Multiple keywords:</strong> Add as many chips as you need. Rows matching <em>any</em> keyword are shown (OR logic).</li>
+          <li><strong>Wildcard:</strong> Use <code>*</code> for partial matching &mdash; e.g. <code>insulin*</code> matches "insulin lispro", "insulin glargine", etc.</li>
+          <li><strong>Paste a list:</strong> Paste comma-separated terms and each becomes its own chip.</li>
+          <li><strong>Remove a chip:</strong> Click the &times; on any chip, or press <kbd>Backspace</kbd> when the input is empty.</li>
+          <li><strong>AI Expand:</strong> Click the <em>&#9733; AI Expand</em> button and describe what you need in plain language (e.g. &ldquo;all GLP-1 receptor agonists including brand names&rdquo;). The AI will generate a comprehensive keyword list &mdash; every generic name, brand name, and variant &mdash; and add them as chips automatically. Requires an API key (see Settings).</li>
+          <li><strong>Desired column:</strong> All matching rows default to <em>checked</em>. Uncheck any you don't want. The downloaded CSV includes all matching rows with a <code>desired</code> column (TRUE/FALSE).</li>
+          <li><strong>Category column:</strong> Click any row's Category cell to type a free-text label (e.g. "obesity-related", "age-related"). Categories are saved in the CSV so you can group rows by purpose.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ai-panel" id="ai-panel-medication">
+      <textarea id="ai-input-medication" placeholder="Describe what medications you need, e.g. 'all GLP-1 receptor agonists including brand names'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('medication')">Generate Keywords</button>
+        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('medication')">Cancel</button>
+        <span class="ai-status" id="ai-status-medication"></span>
+        <span class="ai-hint">Tip: Include drug classes, brand names, or therapeutic categories.</span>
+      </div>
+    </div>
+    <div class="med-filters" id="med-filters">
+      <div>
+        <label for="filter-pharm-class">Pharmaceutical Class</label>
+        <select id="filter-pharm-class">
+          <option value="">All Classes</option>
+        </select>
+      </div>
+      <div>
+        <label for="filter-pharm-subclass">Pharmaceutical Subclass</label>
+        <select id="filter-pharm-subclass">
+          <option value="">All Subclasses</option>
+        </select>
+      </div>
+      <div>
+        <label for="filter-source-system">Source System</label>
+        <select id="filter-source-system">
+          <option value="">All Systems</option>
+        </select>
+      </div>
+    </div>
+    <div class="status-bar" id="status-medication">
+      <span class="stat">Total in dictionary: <span class="stat-value" id="total-medication">0</span></span>
+      <span class="stat">Matching filter: <span class="stat-value" id="visible-medication">0</span></span>
+      <span class="stat">Checked (desired): <span class="desired-count" id="desired-medication">0</span></span>
+    </div>
+    <table id="table-medication" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Desired</th>
+          <th>Source</th>
+          <th>Key/Mnemonic</th>
+          <th>Name</th>
+          <th>Generic Name</th>
+          <th>Pharm Class</th>
+          <th>Pharm Subclass</th>
+          <th>Category</th>
+          <th>Keyword Matched</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ---- Labs Tab ---- -->
+  <div class="tab-content" id="tab-lab">
+    <div class="search-action-bar">
+      <div class="keyword-search-wrapper" id="kw-wrapper-lab">
+        <span class="search-icon">&#128269;</span>
+        <div class="keyword-chips" id="kw-chips-lab"></div>
+        <input type="text" id="search-lab"
+               placeholder="Type keyword + Enter (e.g. hemoglobin, A1c, glucose*)"
+               class="keyword-input">
+      </div>
+      <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('lab')" title="Clear all keywords" style="display:none" id="btn-clear-kw-lab">&#10005; Clear</button>
+      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('lab')">&#9733; AI Expand</button>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('lab')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('lab')">Uncheck All</button>
+      </div>
+      <button class="btn btn-success" onclick="DictApp.downloadCsv('lab')" title="Downloads all matching rows. Each row has a desired column (TRUE/FALSE) you can edit.">&#8681; Download Matching Rows</button>
+      <button class="btn btn-crdw" onclick="DictApp.sendToCrdw('lab')" title="Push SS files directly to the project's GitHub repo">&#9654; Send to CRDW</button>
+    </div>
+    <div class="search-help">
+      <button class="search-help-toggle" onclick="this.parentElement.classList.toggle('open')">
+        How to search <span class="toggle-arrow">&#9660;</span>
+      </button>
+      <div class="search-help-content">
+        <ul>
+          <li><strong>Add a keyword:</strong> Type a word and press <kbd>Enter</kbd> or <kbd>,</kbd> &mdash; it becomes a filter chip.</li>
+          <li><strong>Multiple keywords:</strong> Add as many chips as you need. Rows matching <em>any</em> keyword are shown (OR logic).</li>
+          <li><strong>Wildcard:</strong> Use <code>*</code> for partial matching &mdash; e.g. <code>glucose*</code> matches "glucose", "glucose fasting", etc.</li>
+          <li><strong>Paste a list:</strong> Paste comma-separated terms and each becomes its own chip.</li>
+          <li><strong>Remove a chip:</strong> Click the &times; on any chip, or press <kbd>Backspace</kbd> when the input is empty.</li>
+          <li><strong>AI Expand:</strong> Click the <em>&#9733; AI Expand</em> button and describe what you need in plain language (e.g. &ldquo;complete metabolic panel&rdquo; or &ldquo;all renal function labs&rdquo;). The AI will expand panel names into every individual analyte (e.g. CBC &rarr; hemoglobin, hematocrit, WBC, RBC, platelets, etc.) and add them as chips automatically. Requires an API key (see Settings).</li>
+          <li><strong>Desired column:</strong> All matching rows default to <em>checked</em>. Uncheck any you don't want. The downloaded CSV includes all matching rows with a <code>desired</code> column (TRUE/FALSE).</li>
+          <li><strong>Category column:</strong> Click any row's Category cell to type a free-text label (e.g. "obesity-related", "age-related"). Categories are saved in the CSV so you can group rows by purpose.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ai-panel" id="ai-panel-lab">
+      <textarea id="ai-input-lab" placeholder="Describe what lab values you need, e.g. 'complete metabolic panel' or 'renal function labs'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('lab')">Generate Keywords</button>
+        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('lab')">Cancel</button>
+        <span class="ai-status" id="ai-status-lab"></span>
+        <span class="ai-hint">Tip: Use panel names (CBC, CMP) and the AI will expand to all analytes.</span>
+      </div>
+    </div>
+    <div class="status-bar" id="status-lab">
+      <span class="stat">Total in dictionary: <span class="stat-value" id="total-lab">0</span></span>
+      <span class="stat">Matching filter: <span class="stat-value" id="visible-lab">0</span></span>
+      <span class="stat">Checked (desired): <span class="desired-count" id="desired-lab">0</span></span>
+    </div>
+    <table id="table-lab" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Desired</th>
+          <th>Source</th>
+          <th>Key/Print#</th>
+          <th>Name</th>
+          <th>Common Name</th>
+          <th>LOINC</th>
+          <th>Units</th>
+          <th>Category</th>
+          <th>Keyword Matched</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ---- Locations Tab ---- -->
+  <div class="tab-content" id="tab-location">
+    <div class="search-action-bar">
+      <div class="keyword-search-wrapper" id="kw-wrapper-location">
+        <span class="search-icon">&#128269;</span>
+        <div class="keyword-chips" id="kw-chips-location"></div>
+        <input type="text" id="search-location"
+               placeholder="Type keyword + Enter (e.g. cardio*, oncology, OU Health)"
+               class="keyword-input">
+      </div>
+      <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('location')" title="Clear all keywords" style="display:none" id="btn-clear-kw-location">&#10005; Clear</button>
+      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('location')">&#9733; AI Expand</button>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('location')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('location')">Uncheck All</button>
+      </div>
+      <button class="btn btn-success" onclick="DictApp.downloadCsv('location')" title="Downloads all matching rows. Each row has a desired column (TRUE/FALSE) you can edit.">&#8681; Download Matching Rows</button>
+      <button class="btn btn-crdw" onclick="DictApp.sendToCrdw('location')" title="Push SS files directly to the project's GitHub repo">&#9654; Send to CRDW</button>
+    </div>
+    <div class="search-help">
+      <button class="search-help-toggle" onclick="this.parentElement.classList.toggle('open')">
+        How to search <span class="toggle-arrow">&#9660;</span>
+      </button>
+      <div class="search-help-content">
+        <ul>
+          <li><strong>Add a keyword:</strong> Type a word and press <kbd>Enter</kbd> or <kbd>,</kbd> &mdash; it becomes a filter chip.</li>
+          <li><strong>Multiple keywords:</strong> Add as many chips as you need. Rows matching <em>any</em> keyword are shown (OR logic).</li>
+          <li><strong>Wildcard:</strong> Use <code>*</code> for partial matching &mdash; e.g. <code>cardio*</code> matches "cardiology", "cardiovascular", etc.</li>
+          <li><strong>Paste a list:</strong> Paste comma-separated terms and each becomes its own chip.</li>
+          <li><strong>Remove a chip:</strong> Click the &times; on any chip, or press <kbd>Backspace</kbd> when the input is empty.</li>
+          <li><strong>AI Expand:</strong> Click the <em>&#9733; AI Expand</em> button and describe what you need in plain language (e.g. &ldquo;all cardiology clinics and cardiac surgery units&rdquo;). The AI will generate a comprehensive list of department and specialty keywords and add them as chips automatically. Requires an API key (see Settings).</li>
+          <li><strong>Desired column:</strong> All matching rows default to <em>checked</em>. Uncheck any you don't want. The downloaded CSV includes all matching rows with a <code>desired</code> column (TRUE/FALSE).</li>
+          <li><strong>Category column:</strong> Click any row's Category cell to type a free-text label (e.g. "obesity-related", "age-related"). Categories are saved in the CSV so you can group rows by purpose.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ai-panel" id="ai-panel-location">
+      <textarea id="ai-input-location" placeholder="Describe what locations you need, e.g. 'all cardiology clinics and cardiac units'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('location')">Generate Keywords</button>
+        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('location')">Cancel</button>
+        <span class="ai-status" id="ai-status-location"></span>
+        <span class="ai-hint">Tip: Describe the specialty, department type, or location names you need.</span>
+      </div>
+    </div>
+    <div class="status-bar" id="status-location">
+      <span class="stat">Total in dictionary: <span class="stat-value" id="total-location">0</span></span>
+      <span class="stat">Matching filter: <span class="stat-value" id="visible-location">0</span></span>
+      <span class="stat">Checked (desired): <span class="desired-count" id="desired-location">0</span></span>
+    </div>
+    <table id="table-location" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Desired</th>
+          <th>Source</th>
+          <th>Key/Mnemonic</th>
+          <th>Name</th>
+          <th>Specialty/Type</th>
+          <th>Location/Facility</th>
+          <th>Category</th>
+          <th>Keyword Matched</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ---- Loading Overlay ---- -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- ---- Toast ---- -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ---- Scripts ---- -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="js/system-logic.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/csv-download.js"></script>
+  <script src="js/github-push.js"></script>
+  <script src="js/ai-expand.js"></script>
+  <script src="js/data-embedded.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

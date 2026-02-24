@@ -1,0 +1,16 @@
+department_key,department_external_name,department_name,department_specialty,location_name,is_bed,is_room,department_type
+3001,OU PHYSICIANS INTERNAL MEDICINE,OU PHYS INTERNAL MED,Internal Medicine,OU Physicians Building,0,0,Clinic
+3002,OU PHYSICIANS CARDIOLOGY,OU PHYS CARDIOLOGY,Cardiology,OU Physicians Building,0,0,Clinic
+3003,OU PHYSICIANS ENDOCRINOLOGY,OU PHYS ENDOCRINOLOGY,Endocrinology,OU Physicians Building,0,0,Clinic
+3004,OU PHYSICIANS NEPHROLOGY,OU PHYS NEPHROLOGY,Nephrology,OU Physicians Building,0,0,Clinic
+3005,OU PHYSICIANS PULMONOLOGY,OU PHYS PULMONOLOGY,Pulmonology,OU Physicians Building,0,0,Clinic
+3006,OU PHYSICIANS NEUROLOGY,OU PHYS NEUROLOGY,Neurology,OU Physicians Building,0,0,Clinic
+3010,OU MEDICAL CENTER 6E,OUMC 6E,Medical/Surgical,OU Medical Center,1,1,Inpatient
+3011,OU MEDICAL CENTER 7W,OUMC 7W,Medical/Surgical,OU Medical Center,1,1,Inpatient
+3012,OU MEDICAL CENTER ICU,OUMC ICU,Critical Care,OU Medical Center,1,1,Inpatient
+3013,OU MEDICAL CENTER ED,OUMC ED,Emergency Medicine,OU Medical Center,1,1,Emergency
+3020,CHILDREN'S HOSPITAL PICU,CH PICU,Pediatric Critical Care,Children's Hospital,1,1,Inpatient
+3021,CHILDREN'S HOSPITAL NICU,CH NICU,Neonatal,Children's Hospital,1,1,Inpatient
+3030,OU PHYSICIANS FAMILY MEDICINE,OU PHYS FAMILY MED,Family Medicine,OU Physicians Building,0,0,Clinic
+3031,OU PHYSICIANS ONCOLOGY,OU PHYS ONCOLOGY,Oncology,OU Physicians Building,0,0,Clinic
+3032,OU PHYSICIANS DERMATOLOGY,OU PHYS DERMATOLOGY,Dermatology,OU Physicians Building,0,0,Clinic

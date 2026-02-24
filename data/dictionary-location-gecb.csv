@@ -1,0 +1,13 @@
+sched_location_id,sched_location,clinic_name,billing_loc_name
+5001,OU PHYS IM CLINIC 1,OU Physicians Internal Medicine,OU Physicians
+5002,OU PHYS CARD CLINIC,OU Physicians Cardiology,OU Physicians
+5003,OU PHYS ENDO CLINIC,OU Physicians Endocrinology,OU Physicians
+5004,OU PHYS NEPH CLINIC,OU Physicians Nephrology,OU Physicians
+5005,OU PHYS PULM CLINIC,OU Physicians Pulmonology,OU Physicians
+5006,OU PHYS NEUR CLINIC,OU Physicians Neurology,OU Physicians
+5010,FAMILY MED CENTER,Family Medicine Center,Family Medicine
+5011,FAMILY MED EDMOND,Family Medicine Edmond,Family Medicine
+5020,PEDS PRIMARY CARE,Pediatric Primary Care,Children's Hospital
+5021,PEDS SUBSPECIALTY,Pediatric Subspecialty,Children's Hospital
+5030,OU PHYS DERM CLINIC,OU Physicians Dermatology,OU Physicians
+5031,OU PHYS ONCO CLINIC,OU Physicians Oncology,OU Physicians

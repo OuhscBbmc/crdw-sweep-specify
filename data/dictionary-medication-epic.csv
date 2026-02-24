@@ -1,0 +1,34 @@
+medication_key,name,generic_name,pharmaceutical_class,pharmaceutical_subclass,therapeutic_class
+1001,METFORMIN 500 MG TABLET,metformin,Antihyperglycemics,Biguanides,Endocrine
+1002,METFORMIN 1000 MG TABLET,metformin,Antihyperglycemics,Biguanides,Endocrine
+1003,METFORMIN ER 500 MG TABLET,metformin,Antihyperglycemics,Biguanides,Endocrine
+1004,METFORMIN ER 750 MG TABLET,metformin,Antihyperglycemics,Biguanides,Endocrine
+1010,GLIPIZIDE 5 MG TABLET,glipizide,Antihyperglycemics,Sulfonylureas,Endocrine
+1011,GLIPIZIDE 10 MG TABLET,glipizide,Antihyperglycemics,Sulfonylureas,Endocrine
+1012,GLIPIZIDE ER 5 MG TABLET,glipizide,Antihyperglycemics,Sulfonylureas,Endocrine
+1020,INSULIN LISPRO 100 UNITS/ML INJ,insulin lispro,Antihyperglycemics,Insulins,Endocrine
+1021,INSULIN GLARGINE 100 UNITS/ML INJ,insulin glargine,Antihyperglycemics,Insulins,Endocrine
+1022,INSULIN ASPART 100 UNITS/ML INJ,insulin aspart,Antihyperglycemics,Insulins,Endocrine
+1023,INSULIN NPH 100 UNITS/ML INJ,insulin isophane,Antihyperglycemics,Insulins,Endocrine
+1030,SEMAGLUTIDE 0.25 MG/0.5 ML INJ (OZEMPIC),semaglutide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1031,SEMAGLUTIDE 1 MG/0.5 ML INJ (OZEMPIC),semaglutide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1032,SEMAGLUTIDE 3 MG TABLET (RYBELSUS),semaglutide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1033,SEMAGLUTIDE 2.4 MG/0.75 ML INJ (WEGOVY),semaglutide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1034,LIRAGLUTIDE 1.8 MG/3 ML INJ (VICTOZA),liraglutide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1035,DULAGLUTIDE 1.5 MG/0.5 ML INJ (TRULICITY),dulaglutide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1036,EXENATIDE 2 MG INJ (BYDUREON),exenatide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1037,TIRZEPATIDE 5 MG/0.5 ML INJ (MOUNJARO),tirzepatide,Antihyperglycemics,GLP-1 Receptor Agonists,Endocrine
+1040,LISINOPRIL 10 MG TABLET,lisinopril,Antihypertensives,ACE Inhibitors,Cardiovascular
+1041,LISINOPRIL 20 MG TABLET,lisinopril,Antihypertensives,ACE Inhibitors,Cardiovascular
+1042,ENALAPRIL 5 MG TABLET,enalapril,Antihypertensives,ACE Inhibitors,Cardiovascular
+1043,ENALAPRIL 10 MG TABLET,enalapril,Antihypertensives,ACE Inhibitors,Cardiovascular
+1044,RAMIPRIL 5 MG CAPSULE,ramipril,Antihypertensives,ACE Inhibitors,Cardiovascular
+1050,LOSARTAN 25 MG TABLET,losartan,Antihypertensives,Angiotensin II Receptor Blockers,Cardiovascular
+1051,LOSARTAN 50 MG TABLET,losartan,Antihypertensives,Angiotensin II Receptor Blockers,Cardiovascular
+1052,VALSARTAN 80 MG TABLET,valsartan,Antihypertensives,Angiotensin II Receptor Blockers,Cardiovascular
+1053,OLMESARTAN 20 MG TABLET,olmesartan,Antihypertensives,Angiotensin II Receptor Blockers,Cardiovascular
+1060,AMLODIPINE 5 MG TABLET,amlodipine,Antihypertensives,Calcium Channel Blockers,Cardiovascular
+1061,AMLODIPINE 10 MG TABLET,amlodipine,Antihypertensives,Calcium Channel Blockers,Cardiovascular
+1070,ATORVASTATIN 20 MG TABLET,atorvastatin,Antihyperlipidemics,HMG-CoA Reductase Inhibitors,Cardiovascular
+1071,ATORVASTATIN 40 MG TABLET,atorvastatin,Antihyperlipidemics,HMG-CoA Reductase Inhibitors,Cardiovascular
+1072,ROSUVASTATIN 10 MG TABLET,rosuvastatin,Antihyperlipidemics,HMG-CoA Reductase Inhibitors,Cardiovascular

@@ -1,0 +1,32 @@
+lab_component_key,name,common_name,loinc_code,loinc_name,default_unit,type
+2001,GLUCOSE,GLUCOSE,2345-7,Glucose [Mass/Vol],mg/dL,Numeric
+2002,HEMOGLOBIN A1C,HEMOGLOBIN A1C,4548-4,Hemoglobin A1c/Hemoglobin.total,%%,Numeric
+2003,CREATININE,CREATININE,2160-0,Creatinine [Mass/Vol],mg/dL,Numeric
+2004,BUN,BUN,3094-0,Urea nitrogen [Mass/Vol],mg/dL,Numeric
+2005,GFR ESTIMATED,GFR ESTIMATED,33914-3,Glomerular filtration rate/1.73 sq M,mL/min/1.73m2,Numeric
+2006,SODIUM,SODIUM,2951-2,Sodium [Moles/Vol],mEq/L,Numeric
+2007,POTASSIUM,POTASSIUM,2823-3,Potassium [Moles/Vol],mEq/L,Numeric
+2008,CHLORIDE,CHLORIDE,2075-0,Chloride [Moles/Vol],mEq/L,Numeric
+2009,CO2,CO2,2028-9,Carbon dioxide [Moles/Vol],mEq/L,Numeric
+2010,CALCIUM,CALCIUM,17861-6,Calcium [Mass/Vol],mg/dL,Numeric
+2011,ALBUMIN,ALBUMIN,1751-7,Albumin [Mass/Vol],g/dL,Numeric
+2012,TOTAL PROTEIN,TOTAL PROTEIN,2885-2,Protein [Mass/Vol],g/dL,Numeric
+2013,AST (SGOT),AST (SGOT),1920-8,Aspartate aminotransferase [Enzymatic activity/Vol],U/L,Numeric
+2014,ALT (SGPT),ALT (SGPT),1742-6,Alanine aminotransferase [Enzymatic activity/Vol],U/L,Numeric
+2015,ALKALINE PHOSPHATASE,ALKALINE PHOSPHATASE,6768-6,Alkaline phosphatase [Enzymatic activity/Vol],U/L,Numeric
+2016,BILIRUBIN TOTAL,BILIRUBIN TOTAL,1975-2,Bilirubin.total [Mass/Vol],mg/dL,Numeric
+2020,WBC,WBC,6690-2,Leukocytes [#/Vol],x10E3/uL,Numeric
+2021,RBC,RBC,789-8,Erythrocytes [#/Vol],x10E6/uL,Numeric
+2022,HEMOGLOBIN,HEMOGLOBIN,718-7,Hemoglobin [Mass/Vol],g/dL,Numeric
+2023,HEMATOCRIT,HEMATOCRIT,4544-3,Hematocrit [Vol Fraction],%%,Numeric
+2024,MCV,MCV,787-2,Mean corpuscular volume [Entitic volume],fL,Numeric
+2025,MCH,MCH,785-6,Mean corpuscular hemoglobin [Entitic mass],pg,Numeric
+2026,MCHC,MCHC,786-4,Mean corpuscular hemoglobin concentration [Mass/Vol],g/dL,Numeric
+2027,RDW,RDW,788-0,Red cell distribution width [Ratio],%%,Numeric
+2028,PLATELET COUNT,PLATELET COUNT,777-3,Platelets [#/Vol],x10E3/uL,Numeric
+2029,NEUTROPHILS %,NEUTROPHILS %%,770-8,Neutrophils/100 leukocytes,%%,Numeric
+2030,LYMPHOCYTES %,LYMPHOCYTES %%,736-9,Lymphocytes/100 leukocytes,%%,Numeric
+2031,PHOSPHORUS,PHOSPHORUS,2777-1,Phosphate [Mass/Vol],mg/dL,Numeric
+2032,URINE ALBUMIN/CREATININE RATIO,URINE ALBUMIN/CREAT RATIO,9318-7,Albumin/Creatinine [Mass Ratio],mg/g,Numeric
+2033,URINE PROTEIN,URINE PROTEIN,5804-0,Protein [Mass/Vol] in Urine,mg/dL,Numeric
+2034,CYSTATIN C,CYSTATIN C,33863-2,Cystatin C [Mass/Vol],mg/L,Numeric
