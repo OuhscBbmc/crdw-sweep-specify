@@ -66,7 +66,10 @@ const CsvDownload = (function () {
       'lab-meditech':           `${prefix}ss-lab-meditech.csv`,
       'location-epic':          `${prefix}ss-location-epic.csv`,
       'location-gecb':          `${prefix}ss-location-gecb.csv`,
-      'location-meditech':      `${prefix}ss-location-meditech.csv`
+      'location-meditech':      `${prefix}ss-location-meditech.csv`,
+      'procedure-epic':         `${prefix}ss-procedure-epic.csv`,
+      'procedure-gecb':         `${prefix}ss-procedure-gecb.csv`,
+      'procedure':              `${prefix}ss-procedure.csv`
     };
 
     const key = source ? `${type}-${source}` : type;
@@ -74,35 +77,47 @@ const CsvDownload = (function () {
   }
 
   /**
-   * Export rows as a CSV file download
-   * @param {Object[]} rows - Data rows with desired and category fields
-   * @param {string} type - Dictionary type
-   * @param {string} source - Source system (e.g., 'epic', 'meditech')
-   * @param {string} projectName - Project name for filename
-   * @param {boolean} desiredOnly - If true, only export rows with desired=true
+   * Export rows as a CSV file download.
+   * Schema is built dynamically from the actual row columns so the output always
+   * matches the loaded data (unified files with source_db) regardless of source.
+   * Always includes: all original data columns, then desired, category, keyword_matched.
+   *
+   * @param {Object[]} rows        - Data rows with desired / category / keyword_matched
+   * @param {string}   type        - Dictionary type
+   * @param {string}   source      - Source system (e.g., 'epic', 'meditech') — used for filename
+   * @param {string}   projectName - Project name for filename
+   * @param {boolean}  desiredOnly - If true, only export rows with desired=true
    */
   function download(rows, type, source, projectName, desiredOnly) {
-    const schema = getDownloadSchema(type, source);
-    if (schema.length === 0) {
-      console.error('No schema found for', type, source);
-      return;
+    if (!rows || rows.length === 0) {
+      console.error('No rows to download for', type, source);
+      return null;
     }
 
-    let exportRows = rows;
-    if (desiredOnly) {
-      exportRows = rows.filter(r => r.desired);
+    let exportRows = desiredOnly ? rows.filter(r => r.desired) : rows;
+    if (exportRows.length === 0) {
+      return null;
     }
+
+    // Build schema dynamically from the first row's keys.
+    // Internal fields (starting with _) are excluded.
+    // desired / category / keyword_matched are placed last in a fixed order.
+    const sampleRow = exportRows[0];
+    const reserved = new Set(['desired', 'category', 'keyword_matched']);
+    const dataCols = Object.keys(sampleRow).filter(k => !k.startsWith('_') && !reserved.has(k));
+    const schema = [...dataCols, 'desired', 'category', 'keyword_matched'];
 
     // Build CSV content
     const headerLine = schema.join(',');
     const dataLines = exportRows.map(row => {
       return schema.map(col => {
-        let val = row[col];
+        let val;
         if (col === 'desired') {
           val = row.desired ? 'TRUE' : 'FALSE';
+        } else {
+          val = row[col];
         }
         if (val === undefined || val === null) val = '';
-        // Quote fields that contain commas, quotes, or newlines
         val = String(val);
         if (val.includes(',') || val.includes('"') || val.includes('\n')) {
           val = '"' + val.replace(/"/g, '""') + '"';

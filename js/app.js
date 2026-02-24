@@ -6,6 +6,16 @@
 // ============================================================================
 
 const DictApp = (function () {
+  // Datasets larger than this threshold use on-demand rendering:
+  // DataTables starts empty and only receives rows matching the current keywords.
+  // Native Array.filter() on the full in-memory array is fast (~50ms for 200K rows);
+  // rendering 200K rows into the DOM is what causes the freeze.
+  const LARGE_DATASET_THRESHOLD = 25000;
+
+  function isLarge(type) {
+    return state.data[type].length > LARGE_DATASET_THRESHOLD;
+  }
+
   // ---- State ----
   const state = {
     rawData: {},        // Raw CSV data keyed by filename
@@ -15,7 +25,8 @@ const DictApp = (function () {
     categories: { dx: {}, medication: {}, lab: {}, location: {}, procedure: {} },
     keywordMatched: { dx: {}, medication: {}, lab: {}, location: {}, procedure: {} },
     activeSystems: { dx: [], medication: [], lab: [], location: [], procedure: [] },
-    keywords: { dx: [], medication: [], lab: [], location: [], procedure: [] },  // active keyword chips
+    keywords: { dx: [], medication: [], lab: [], location: [], procedure: [] },
+    onDemandMatched: { dx: [], medication: [], lab: [], location: [], procedure: [] },
     aiConfig: {}
   };
 
@@ -92,9 +103,12 @@ const DictApp = (function () {
         input.value = '';
       });
 
-      // If user types and pauses (no Enter), still use as live filter
+      // If user types and pauses (no Enter), still use as live filter.
+      // Skip live filtering for large datasets — too slow to scan 200K rows per keypress.
+      // On large datasets, keywords must be committed as chips (Enter/comma) to trigger a search.
       let debounceTimer;
       input.addEventListener('input', () => {
+        if (isLarge(type)) return;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           applyKeywordFilter(type);
@@ -136,9 +150,19 @@ const DictApp = (function () {
   function clearKeywords(type) {
     state.keywords[type] = [];
     renderChips(type);
-    // Clear DataTables search to show all rows again
-    if (state.tables[type]) {
-      state.tables[type].search('').draw();
+    if (isLarge(type)) {
+      // On-demand: clear DataTables and reset the matched set
+      state.onDemandMatched[type] = [];
+      $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(
+        function (fn) { return fn._kwFilterType !== type; }
+      );
+      if (state.tables[type]) state.tables[type].clear().draw();
+    } else {
+      // Standard: clear DataTables built-in search filter
+      $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(
+        function (fn) { return fn._kwFilterType !== type; }
+      );
+      if (state.tables[type]) state.tables[type].search('').draw();
     }
     updateClearButton(type);
     updateStatusBar(type);
@@ -211,6 +235,13 @@ const DictApp = (function () {
    * When keywords are active, auto-checks "desired" for all matching rows.
    */
   function applyKeywordFilter(type) {
+    // Large datasets use a different code path: native Array.filter() populates
+    // DataTables with only the matched rows instead of filtering an all-rows table.
+    if (isLarge(type)) {
+      applyKeywordFilterOnDemand(type);
+      return;
+    }
+
     const table = state.tables[type];
     if (!table) return;
 
@@ -259,6 +290,74 @@ const DictApp = (function () {
     if (state.keywords[type].length > 0) {
       autoDesireVisible(type, allTerms);
     }
+
+    updateStatusBar(type);
+  }
+
+  /**
+   * On-demand keyword filter for large datasets (> LARGE_DATASET_THRESHOLD rows).
+   * Uses fast native Array.filter() on the in-memory data, then populates
+   * DataTables with only the matching rows. Bypasses DataTables' built-in search
+   * entirely, which is what causes the DOM freeze on 200K-row datasets.
+   */
+  function applyKeywordFilterOnDemand(type) {
+    var table = state.tables[type];
+    if (!table) return;
+
+    // Only use committed keyword chips — live-typed text is not applied here
+    // because scanning 200K rows per keypress is too slow.
+    var allTerms = state.keywords[type].slice();
+
+    if (allTerms.length === 0) {
+      state.onDemandMatched[type] = [];
+      table.clear().draw();
+      updateStatusBar(type);
+      return;
+    }
+
+    var matchers = allTerms.map(buildMatcher);
+
+    // Fast native scan — ~50ms for 200K rows
+    var matched = state.data[type].filter(function (row) {
+      var rowValues = Object.keys(row)
+        .filter(function (k) {
+          return !k.startsWith('_') && k !== 'desired' && k !== 'category' && k !== 'keyword_matched';
+        })
+        .map(function (k) { return (row[k] || '').toString().toLowerCase(); });
+      return matchers.some(function (matcher) {
+        return rowValues.some(function (val) { return matcher(val); });
+      });
+    });
+
+    // Auto-desire every matched row and record which keyword triggered the match
+    var kwMatchers = allTerms.map(function (kw) {
+      return { keyword: kw, matcher: buildMatcher(kw) };
+    });
+    matched.forEach(function (row) {
+      var rowValues = Object.keys(row)
+        .filter(function (k) {
+          return !k.startsWith('_') && k !== 'desired' && k !== 'category' && k !== 'keyword_matched';
+        })
+        .map(function (k) { return (row[k] || '').toString().toLowerCase(); });
+      var matchedKw = '';
+      for (var i = 0; i < kwMatchers.length; i++) {
+        if (rowValues.some(function (val) { return kwMatchers[i].matcher(val); })) {
+          matchedKw = kwMatchers[i].keyword;
+          break;
+        }
+      }
+      row.desired = true;
+      row.keyword_matched = matchedKw || row.keyword_matched;
+      state.desired[type][row._rowKey] = true;
+      state.keywordMatched[type][row._rowKey] = row.keyword_matched;
+    });
+
+    // Store for select-all / deselect / status bar / download
+    state.onDemandMatched[type] = matched;
+
+    // Populate DataTables with only matched rows
+    var rowArrays = matched.map(function (row) { return buildRowArray(type, row); });
+    table.clear().rows.add(rowArrays).draw();
 
     updateStatusBar(type);
   }
@@ -519,10 +618,14 @@ const DictApp = (function () {
         var userOverride = state.desired[type][rowKey];
         var isDesired = (userOverride !== undefined) ? userOverride : false;
 
+        // _origIdx is stored so buildRowArray can always reference the correct
+        // state.data index even when DataTables only holds a filtered subset.
+        const origIdx = merged.length;
         merged.push({
           ...row,
           _source: rowSource,
           _rowKey: rowKey,
+          _origIdx: origIdx,
           desired: isDesired,
           category: state.categories[type][rowKey] || row.category || '',
           keyword_matched: state.keywordMatched[type][rowKey] || ''
@@ -643,7 +746,10 @@ const DictApp = (function () {
     }
 
     var columnDefs = getColumnDefs(type);
-    var rows = data.map(function (row, idx) { return buildRowArray(type, row, idx); });
+    var large = data.length > LARGE_DATASET_THRESHOLD;
+    // For large datasets, start with no rows in the DOM. The keyword filter
+    // will push only matching rows in on-demand mode (fast native Array scan).
+    var rows = large ? [] : data.map(function (row, idx) { return buildRowArray(type, row, idx); });
 
     // Re-create thead with header checkbox for "Desired" column
     var theadHtml = '<thead><tr>' +
@@ -669,12 +775,21 @@ const DictApp = (function () {
       deferRender: true,
       search: { smart: true, regex: false, caseInsensitive: true },
       createdRow: function (tr, rowData, dataIndex) {
-        var rowObj = state.data[type][dataIndex];
+        // In on-demand mode, dataIndex is 0-based within the matched subset,
+        // not the _origIdx. Extract the correct index from the checkbox onclick.
+        var origIdx = dataIndex;
+        if (rowData && rowData[0]) {
+          var m = rowData[0].match(/toggleDesired\('[^']+',\s*(\d+),/);
+          if (m) origIdx = parseInt(m[1], 10);
+        }
+        var rowObj = state.data[type][origIdx];
         if (rowObj && rowObj.desired) $(tr).addClass('desired-row');
         if (rowObj && rowObj.keyword_matched) $(tr).addClass('ai-matched');
       },
       language: {
-        emptyTable: 'No dictionary data loaded. Ensure CSV files are in the data/ directory.',
+        emptyTable: large
+          ? 'Enter a keyword above to search ' + data.length.toLocaleString() + ' entries.'
+          : 'No dictionary data loaded. Ensure CSV files are in the data/ directory.',
         zeroRecords: 'No matching entries found. Try a different search term.',
         info: 'Showing _START_ to _END_ of _TOTAL_ entries',
         infoFiltered: '(filtered from _MAX_ total)',
@@ -769,9 +884,12 @@ const DictApp = (function () {
    */
   function buildRowArray(type, row, idx) {
     var dataCols = detectDataColumns(type);
+    // Use _origIdx stored on the row (set during load) so callbacks always
+    // reference the correct state.data index even in on-demand mode.
+    var rowIdx = (row._origIdx !== undefined) ? row._origIdx : idx;
     var desiredChecked = row.desired ? 'checked' : '';
-    var desiredHtml = '<input type="checkbox" ' + desiredChecked + ' onchange="DictApp.toggleDesired(\'' + type + '\', ' + idx + ', this.checked)">';
-    var categoryHtml = '<input type="text" value="' + escHtml(row.category) + '" onchange="DictApp.setCategory(\'' + type + '\', ' + idx + ', this.value)" placeholder="e.g. obesity-related" title="Optional label to group this row (e.g. obesity-related, age-related)">';
+    var desiredHtml = '<input type="checkbox" ' + desiredChecked + ' onchange="DictApp.toggleDesired(\'' + type + '\', ' + rowIdx + ', this.checked)">';
+    var categoryHtml = '<input type="text" value="' + escHtml(row.category) + '" onchange="DictApp.setCategory(\'' + type + '\', ' + rowIdx + ', this.value)" placeholder="e.g. obesity-related" title="Optional label to group this row (e.g. obesity-related, age-related)">';
     var kwHtml = escHtml(row.keyword_matched || '');
 
     var arr = [];
@@ -823,6 +941,27 @@ const DictApp = (function () {
     var table = state.tables[type];
     if (!table) return;
 
+    if (isLarge(type)) {
+      // On-demand: operate on the matched subset stored in onDemandMatched
+      var matched = state.onDemandMatched[type];
+      matched.forEach(function (row) {
+        row.desired = checked;
+        state.desired[type][row._rowKey] = checked;
+      });
+      // Rebuild and reload rows so checkboxes re-render with correct state
+      var rowArrays = matched.map(function (row) { return buildRowArray(type, row); });
+      table.clear().rows.add(rowArrays).draw(false);
+      $('#table-' + type + ' tbody input[type="checkbox"]').prop('checked', checked);
+      if (checked) {
+        $('#table-' + type + ' tbody tr').addClass('desired-row');
+      } else {
+        $('#table-' + type + ' tbody tr').removeClass('desired-row');
+      }
+      updateStatusBar(type);
+      showToast(checked ? 'Checked ' + matched.length + ' visible rows' : 'Unchecked ' + matched.length + ' visible rows');
+      return;
+    }
+
     // 1. Update data model for ALL rows matching the current filter
     table.rows({ search: 'applied' }).every(function (rowIdx) {
       var row = state.data[type][rowIdx];
@@ -869,11 +1008,20 @@ const DictApp = (function () {
 
     var allChecked = true;
     var anyVisible = false;
-    table.rows({ search: 'applied' }).every(function (idx) {
-      anyVisible = true;
-      var row = state.data[type][idx];
-      if (row && !row.desired) allChecked = false;
-    });
+
+    if (isLarge(type)) {
+      var matched = state.onDemandMatched[type];
+      anyVisible = matched.length > 0;
+      matched.forEach(function (row) {
+        if (!row.desired) allChecked = false;
+      });
+    } else {
+      table.rows({ search: 'applied' }).every(function (idx) {
+        anyVisible = true;
+        var row = state.data[type][idx];
+        if (row && !row.desired) allChecked = false;
+      });
+    }
 
     cb.checked = anyVisible && allChecked;
     cb.indeterminate = anyVisible && !allChecked &&
@@ -891,14 +1039,21 @@ const DictApp = (function () {
     });
     var table = state.tables[type];
     if (table) {
-      // Update DataTable internal data for visible rows
-      table.rows({ search: 'applied' }).every(function (rowIdx) {
-        var row = state.data[type][rowIdx];
-        if (row) {
-          this.data(buildRowArray(type, row, rowIdx));
-        }
-      });
-      table.draw(false);
+      if (isLarge(type)) {
+        // On-demand: rebuild matched rows with updated desired=false
+        var matched = state.onDemandMatched[type];
+        var rowArrays = matched.map(function (row) { return buildRowArray(type, row); });
+        table.clear().rows.add(rowArrays).draw(false);
+      } else {
+        // Update DataTable internal data for visible rows
+        table.rows({ search: 'applied' }).every(function (rowIdx) {
+          var row = state.data[type][rowIdx];
+          if (row) {
+            this.data(buildRowArray(type, row, rowIdx));
+          }
+        });
+        table.draw(false);
+      }
       // Update DOM checkboxes on current page
       $('#table-' + type + ' tbody input[type="checkbox"]').prop('checked', false);
       $('#table-' + type + ' tbody tr').removeClass('desired-row');
@@ -949,9 +1104,16 @@ const DictApp = (function () {
     $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(
       function (fn) { return !fn._isMedFilter; }
     );
-    var filterFn = function (settings, searchData, dataIndex) {
+    var filterFn = function (settings, rowData, dataIndex) {
       if (settings.nTable.id !== 'table-medication') return true;
-      var row = state.data.medication[dataIndex];
+      // Extract _origIdx from the checkbox onclick in case this is on-demand mode
+      // (where dataIndex is 0-based within matched rows, not the full data array).
+      var origIdx = dataIndex;
+      if (rowData && rowData[0]) {
+        var m = rowData[0].match(/toggleDesired\('[^']+',\s*(\d+),/);
+        if (m) origIdx = parseInt(m[1], 10);
+      }
+      var row = state.data.medication[origIdx];
       if (!row) return true;
       if (routeFilter && (row.route || '').toLowerCase() !== routeFilter) return false;
       if (sourceFilter && (row._source || '').toLowerCase() !== sourceFilter) return false;
@@ -1023,29 +1185,33 @@ const DictApp = (function () {
   }
 
   // ---- CSV Download ----
-  // Always downloads ALL matching rows (visible after filter).
-  // Each row has a "desired" column (TRUE/FALSE) that the user can toggle
-  // in the table before downloading. Unfiltered rows are not included.
+  // Downloads only keyword-matched rows (NOT the full dictionary).
+  // Output includes: all data columns, desired (TRUE/FALSE), category, keyword_matched.
   // Also downloads a companion search-terms manifest CSV for reproducibility.
   function downloadCsv(type) {
     var table = state.tables[type];
     var projectName = document.getElementById('project-name').value.trim();
     var hasFilter = state.keywords[type].length > 0;
 
-    // Collect only the rows that match the current filter (visible rows).
-    // If no filter is active, include ALL rows.
+    if (!hasFilter) {
+      showToast('Add search keywords first — download only works on filtered results.');
+      return;
+    }
+
+    // Collect only the rows matching the current keyword filter
     var matchingData = [];
-    if (table && hasFilter) {
+    if (isLarge(type)) {
+      // On-demand: use the pre-computed matched array (includes desired/keyword_matched)
+      matchingData = state.onDemandMatched[type];
+    } else if (table) {
       table.rows({ search: 'applied' }).every(function (idx) {
         var row = state.data[type][idx];
         if (row) matchingData.push(row);
       });
-    } else {
-      matchingData = state.data[type];
     }
 
     if (matchingData.length === 0) {
-      showToast('No matching rows to download. Add search keywords first.');
+      showToast('No matching rows found. Try different keywords.');
       return;
     }
 
@@ -1106,9 +1272,12 @@ const DictApp = (function () {
   }
 
   // ---- Send to CRDW (GitHub Push) ----
+  // Pushes SS files into projects/{projectName}/ within this same repo
+  // (OuhscBbmc/crdw-sweep-specify). Requires a GitHub personal access token
+  // with write access — set it in Settings.
   async function sendToCrdw(type) {
     if (!GitHubPush.isConfigured()) {
-      showToast('GitHub not configured. Go to Settings and enter your GitHub token and org.');
+      showToast('GitHub not configured. Go to Settings and enter your GitHub token.');
       return;
     }
 
@@ -1121,15 +1290,20 @@ const DictApp = (function () {
     var table = state.tables[type];
     var hasFilter = state.keywords[type].length > 0;
 
-    // Collect matching rows (same logic as downloadCsv)
+    if (!hasFilter) {
+      showToast('Add search keywords before pushing — this prevents accidentally pushing the entire dictionary.');
+      return;
+    }
+
+    // Collect matching rows
     var matchingData = [];
-    if (table && hasFilter) {
+    if (isLarge(type)) {
+      matchingData = state.onDemandMatched[type];
+    } else if (table) {
       table.rows({ search: 'applied' }).every(function (idx) {
         var row = state.data[type][idx];
         if (row) matchingData.push(row);
       });
-    } else {
-      matchingData = state.data[type];
     }
 
     if (matchingData.length === 0) {
@@ -1137,7 +1311,7 @@ const DictApp = (function () {
       return;
     }
 
-    // Group by source for per-system files
+    // Group by source system for separate per-source files
     var bySource = {};
     matchingData.forEach(function (row) {
       var src = row._source || 'cdw';
@@ -1145,48 +1319,45 @@ const DictApp = (function () {
       bySource[src].push(row);
     });
 
-    var repoName = projectName;
-    var basePath = 'data-public/metadata';
+    // Target: projects/{projectName}/ within OuhscBbmc/crdw-sweep-specify
+    var repoName = 'crdw-sweep-specify';
+    var basePath = 'projects/' + projectName;
     var filesToPush = [];
 
-    // Build the SS data CSV(s)
+    // Build the SS data CSV(s) — one per source system
     if (type === 'dx') {
-      var schema = CsvDownload.getDownloadSchema('dx', null);
-      var csv = GitHubPush.buildCsvContent(matchingData, schema);
-      var fname = CsvDownload.getDownloadFilename('dx', null, '');
+      var csv = GitHubPush.buildCsvContent(matchingData);
+      var fname = CsvDownload.getDownloadFilename('dx', null, projectName);
       filesToPush.push({ path: basePath + '/' + fname, content: csv, label: fname });
     } else {
       Object.keys(bySource).forEach(function (source) {
         var rows = bySource[source];
-        var schema = CsvDownload.getDownloadSchema(type, source);
-        var csv = GitHubPush.buildCsvContent(rows, schema);
-        var fname = CsvDownload.getDownloadFilename(type, source, '');
+        var csv = GitHubPush.buildCsvContent(rows);
+        var fname = CsvDownload.getDownloadFilename(type, source, projectName);
         filesToPush.push({ path: basePath + '/' + fname, content: csv, label: fname });
       });
     }
 
-    // Build the search-terms manifest (if keywords were used)
+    // Add search-terms manifest
     var keywords = state.keywords[type];
-    if (keywords.length > 0) {
-      var dateStart = document.getElementById('date-start').value || '';
-      var dateEnd   = document.getElementById('date-end').value || '';
-      var systems   = state.activeSystems[type] || [];
-      var manifestCsv = GitHubPush.buildManifestContent(
-        keywords, type, matchingData, projectName, dateStart, dateEnd, systems
-      );
-      var manifestName = 'ss-' + type + '-search-terms.csv';
-      filesToPush.push({ path: basePath + '/' + manifestName, content: manifestCsv, label: manifestName });
-    }
+    var dateStart = document.getElementById('date-start').value || '';
+    var dateEnd   = document.getElementById('date-end').value || '';
+    var systems   = state.activeSystems[type] || [];
+    var manifestCsv = GitHubPush.buildManifestContent(
+      keywords, type, matchingData, projectName, dateStart, dateEnd, systems
+    );
+    var manifestName = projectName + '-ss-' + type + '-search-terms.csv';
+    filesToPush.push({ path: basePath + '/' + manifestName, content: manifestCsv, label: manifestName });
 
-    // Push all files
-    showToast('Pushing ' + filesToPush.length + ' file(s) to ' + repoName + '...');
+    // Push all files to GitHub
+    showToast('Pushing ' + filesToPush.length + ' file(s) to projects/' + projectName + '/...');
     var successCount = 0;
     var errors = [];
 
     for (var i = 0; i < filesToPush.length; i++) {
       var f = filesToPush[i];
       try {
-        var commitMsg = 'Update ' + f.label + ' from CRDW Sweep & Specify';
+        var commitMsg = 'Add ' + f.label + ' via CRDW Sweep & Specify';
         await GitHubPush.pushFile(repoName, f.path, f.content, commitMsg);
         successCount++;
       } catch (err) {
@@ -1198,7 +1369,7 @@ const DictApp = (function () {
     if (errors.length > 0) {
       showToast('Pushed ' + successCount + '/' + filesToPush.length + ' files. Errors: ' + errors.join('; '));
     } else {
-      showToast('Pushed ' + successCount + ' file(s) to ' + repoName + '/' + basePath + '/');
+      showToast('Pushed ' + successCount + ' file(s) to ' + repoName + '/projects/' + projectName + '/');
     }
   }
 
@@ -1213,7 +1384,13 @@ const DictApp = (function () {
     var table = state.tables[type];
     document.getElementById('total-' + type).textContent = data.length.toLocaleString();
     if (table) {
-      var visibleCount = table.rows({ search: 'applied' }).count();
+      var visibleCount;
+      if (isLarge(type)) {
+        // On-demand: visible = how many matched rows we loaded into DataTables
+        visibleCount = state.onDemandMatched[type].length;
+      } else {
+        visibleCount = table.rows({ search: 'applied' }).count();
+      }
       document.getElementById('visible-' + type).textContent = visibleCount.toLocaleString();
     }
     var desiredCount = data.filter(function (r) { return r.desired; }).length;

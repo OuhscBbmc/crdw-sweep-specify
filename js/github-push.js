@@ -9,7 +9,7 @@
 const GitHubPush = (function () {
 
   let GH_TOKEN = '';
-  let GH_ORG   = '';
+  let GH_ORG   = 'OuhscBbmc'; // default org; can be overridden via settings
 
   function configure(config) {
     if (config.ghToken) GH_TOKEN = config.ghToken;
@@ -17,7 +17,8 @@ const GitHubPush = (function () {
   }
 
   function isConfigured() {
-    return !!(GH_TOKEN && GH_ORG);
+    // Only a personal access token is required; org defaults to OuhscBbmc
+    return !!GH_TOKEN;
   }
 
   /**
@@ -83,15 +84,27 @@ const GitHubPush = (function () {
   }
 
   /**
-   * Build CSV content from rows using the same logic as csv-download.js
+   * Build CSV content from rows.
+   * Schema is built dynamically from the actual row columns (same as csv-download.js).
+   * Internal fields (_*) are excluded; desired/category/keyword_matched are placed last.
    */
-  function buildCsvContent(rows, schema) {
+  function buildCsvContent(rows) {
+    if (!rows || rows.length === 0) return '';
+    var reserved = { desired: true, category: true, keyword_matched: true };
+    var sampleRow = rows[0];
+    var dataCols = Object.keys(sampleRow).filter(function (k) {
+      return !k.startsWith('_') && !reserved[k];
+    });
+    var schema = dataCols.concat(['desired', 'category', 'keyword_matched']);
+
     var headerLine = schema.join(',');
     var dataLines = rows.map(function (row) {
       return schema.map(function (col) {
-        var val = row[col];
+        var val;
         if (col === 'desired') {
           val = row.desired ? 'TRUE' : 'FALSE';
+        } else {
+          val = row[col];
         }
         if (val === undefined || val === null) val = '';
         val = String(val);
