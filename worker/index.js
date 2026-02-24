@@ -4,19 +4,13 @@
 // Deploy: wrangler deploy
 // Set secrets:
 //   wrangler secret put ANTHROPIC_API_KEY
-//   wrangler secret put GIST_ALLOWLIST_URL
 //
-// GIST_ALLOWLIST_URL is the raw URL of a GitHub Gist containing allowed emails.
-// Example: https://gist.githubusercontent.com/youruser/abc123/raw/allowed-emails.txt
-//
-// The Gist file should have one email per line (or domain wildcards):
-//   *@ouhsc.edu
-//   *@ou.edu
-//   external.collaborator@gmail.com
-//
-// To update the allowlist, just edit the Gist — no redeployment needed.
+// Email allowlist is stored in the repo at data/allowlist.txt.
+// Edit that file and commit to update access — no redeployment needed.
 // The worker caches the list for 5 minutes to avoid hitting GitHub on every request.
 // ============================================================================
+
+const ALLOWLIST_URL = 'https://raw.githubusercontent.com/OuhscBbmc/crdw-sweep-specify/main/data/allowlist.txt';
 
 // In-memory cache for the allowlist (lives as long as the worker instance)
 let cachedAllowlist = null;
@@ -46,7 +40,7 @@ export default {
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      const allowed = await fetchAllowlist(env.GIST_ALLOWLIST_URL);
+      const allowed = await fetchAllowlist(ALLOWLIST_URL);
 
       if (!isEmailAllowed(normalizedEmail, allowed)) {
         return jsonResponse({
@@ -96,24 +90,19 @@ export default {
 };
 
 /**
- * Fetch the email allowlist from a GitHub Gist.
+ * Fetch the email allowlist from the repo's data/allowlist.txt.
  * Caches for 5 minutes to avoid rate limits.
- * @param {string} gistUrl - Raw Gist URL
+ * @param {string} url - Raw URL of the allowlist file
  * @returns {string[]} Array of allowed patterns (emails or *@domain)
  */
-async function fetchAllowlist(gistUrl) {
+async function fetchAllowlist(url) {
   // Return cached if still fresh
   if (cachedAllowlist && (Date.now() - cacheTimestamp) < CACHE_TTL_MS) {
     return cachedAllowlist;
   }
 
-  if (!gistUrl) {
-    console.warn('[AUTH] No GIST_ALLOWLIST_URL configured — denying all');
-    return [];
-  }
-
   try {
-    const response = await fetch(gistUrl, {
+    const response = await fetch(url, {
       headers: { 'User-Agent': 'cdw-dict-worker' }
     });
 

@@ -1,0 +1,11 @@
+# Email allowlist for CRDW Sweep & Specify
+# One entry per line. Supports exact emails and domain wildcards.
+# Edit this file and commit to update access — no redeployment needed.
+#
+# Examples:
+#   *@ouhsc.edu          (anyone at OUHSC)
+#   *@ou.edu             (anyone at OU)
+#   jdoe@gmail.com       (specific external collaborator)
+
+*@ouhsc.edu
+*@ou.edu
