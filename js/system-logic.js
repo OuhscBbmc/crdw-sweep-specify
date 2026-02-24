@@ -33,6 +33,9 @@ const SystemLogic = (function () {
     if (type === 'location') {
       return getLocationSystems(beforeEpic, afterEpic, outpatient, inpatient);
     }
+    if (type === 'procedure') {
+      return getProcedureSystems(beforeEpic, afterEpic);
+    }
     return [];
   }
 
@@ -69,6 +72,14 @@ const SystemLogic = (function () {
     return systems;
   }
 
+  function getProcedureSystems(beforeEpic, afterEpic) {
+    const systems = [];
+    if (afterEpic)  systems.push('epic');
+    if (beforeEpic) systems.push('gecb');
+    if (systems.length === 0) systems.push('epic');
+    return systems;
+  }
+
   function getLocationSystems(beforeEpic, afterEpic, outpatient, inpatient) {
     const systems = [];
     if (afterEpic) {
@@ -89,12 +100,12 @@ const SystemLogic = (function () {
    */
   function getSystemLabel(system) {
     const labels = {
-      epic: 'Epic',
-      meditech: 'Meditech',
+      epic:       'Epic',
+      meditech:   'Meditech',
       centricity: 'Centricity',
-      gecb: 'GECB',
-      icd10: 'ICD-10-CM',
-      icd9: 'ICD-9-CM'
+      gecb:       'GECB',
+      icd10:      'ICD-10-CM',
+      icd9:       'ICD-9-CM'
     };
     return labels[system] || system;
   }
@@ -114,13 +125,17 @@ const SystemLogic = (function () {
         centricity: 'dictionary-medication.csv'
       },
       lab: {
-        epic:     'dictionary-lab-epic.csv',
-        meditech: 'dictionary-lab-meditech.csv'
+        epic:     'dictionary-lab.csv',
+        meditech: 'dictionary-lab.csv'
       },
       location: {
         epic:     'dictionary-location-epic.csv',
         gecb:     'dictionary-location-gecb.csv',
         meditech: 'dictionary-location-meditech.csv'
+      },
+      procedure: {
+        epic: 'dictionary-procedure.csv',
+        gecb: 'dictionary-procedure.csv'
       }
     };
 

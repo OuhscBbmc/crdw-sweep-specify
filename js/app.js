@@ -9,13 +9,13 @@ const DictApp = (function () {
   // ---- State ----
   const state = {
     rawData: {},        // Raw CSV data keyed by filename
-    data: { dx: [], medication: [], lab: [], location: [] },
+    data: { dx: [], medication: [], lab: [], location: [], procedure: [] },
     tables: {},         // DataTable instances
-    desired: { dx: {}, medication: {}, lab: {}, location: {} },
-    categories: { dx: {}, medication: {}, lab: {}, location: {} },
-    keywordMatched: { dx: {}, medication: {}, lab: {}, location: {} },
-    activeSystems: { dx: [], medication: [], lab: [], location: [] },
-    keywords: { dx: [], medication: [], lab: [], location: [] },  // active keyword chips
+    desired: { dx: {}, medication: {}, lab: {}, location: {}, procedure: {} },
+    categories: { dx: {}, medication: {}, lab: {}, location: {}, procedure: {} },
+    keywordMatched: { dx: {}, medication: {}, lab: {}, location: {}, procedure: {} },
+    activeSystems: { dx: [], medication: [], lab: [], location: [], procedure: [] },
+    keywords: { dx: [], medication: [], lab: [], location: [], procedure: [] },  // active keyword chips
     aiConfig: {}
   };
 
@@ -55,7 +55,7 @@ const DictApp = (function () {
 
   // ---- Multi-Keyword Chip Input ----
   function setupKeywordInputs() {
-    ['dx', 'medication', 'lab', 'location'].forEach(type => {
+    ['dx', 'medication', 'lab', 'location', 'procedure'].forEach(type => {
       const input = document.getElementById('search-' + type);
       const wrapper = document.getElementById('kw-wrapper-' + type);
       if (!input || !wrapper) return;
@@ -439,7 +439,7 @@ const DictApp = (function () {
   function updateSystemsAndReload() {
     const dates = getDateRange();
     const ctx = getVisitContext();
-    ['dx', 'medication', 'lab', 'location'].forEach(type => {
+    ['dx', 'medication', 'lab', 'location', 'procedure'].forEach(type => {
       state.activeSystems[type] = SystemLogic.getActiveSystems(
         type, dates.start, dates.end, ctx.outpatient, ctx.inpatient
       );
@@ -467,7 +467,7 @@ const DictApp = (function () {
   async function loadAllData() {
     showLoading(true);
     try {
-      const types = ['dx', 'medication', 'lab', 'location'];
+      const types = ['dx', 'medication', 'lab', 'location', 'procedure'];
       for (const type of types) {
         await loadTypeData(type);
       }
@@ -505,9 +505,9 @@ const DictApp = (function () {
           if (vocab === 'ICD9CM' && !systems.includes('icd9')) return;
         }
 
-        // For medication, the combined file holds all sources; filter by source_db
+        // For types using a unified combined file, filter rows by source_db
         let rowSource = source;
-        if (type === 'medication' && row.source_db) {
+        if (row.source_db && (type === 'medication' || type === 'lab' || type === 'procedure')) {
           rowSource = row.source_db.toLowerCase();
           if (!systems.includes(rowSource)) return;
         }

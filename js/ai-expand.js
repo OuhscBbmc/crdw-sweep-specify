@@ -80,7 +80,15 @@ You are generating clinical location/department search keywords.
 - Include department names, specialty names, and unit types
 - Include common abbreviations (ICU, NICU, PICU, ED, OR, etc.)
 - Include both formal and informal names
-- Example: "cardiology" should return: cardiology, cardiac, heart, cardiovascular, cath lab, electrophysiology, echo, etc.`
+- Example: "cardiology" should return: cardiology, cardiac, heart, cardiovascular, cath lab, electrophysiology, echo, etc.`,
+
+      procedure: `
+You are generating clinical procedure search keywords.
+- Include procedure names, CPT code descriptions, and common abbreviations
+- Include both the full name and common shorthand (e.g. "cataract extraction" and "phaco")
+- Include related procedure variants (unilateral, bilateral, with/without)
+- Example: "cataract surgery" should return: cataract, phacoemulsification, phaco, lens extraction, IOL, intraocular lens, extracapsular, intracapsular, etc.
+- Example: "retinal procedures" should return: vitrectomy, photocoagulation, laser, retinal detachment repair, scleral buckle, intravitreal injection, anti-VEGF, etc.`
     };
 
     return baseRules + (typeSpecific[type] || '');

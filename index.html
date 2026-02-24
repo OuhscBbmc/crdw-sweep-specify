@@ -146,6 +146,9 @@
     <button class="tab-btn" data-tab="location">
       Locations <span class="badge" id="badge-location">0</span>
     </button>
+    <button class="tab-btn" data-tab="procedure">
+      Procedures <span class="badge" id="badge-procedure">0</span>
+    </button>
   </nav>
 
   <!-- ---- Diagnoses Tab ---- -->
@@ -430,6 +433,72 @@
           <th>Specialty/Type</th>
           <th>Location/Facility</th>
           <th>Category</th>
+          <th>Keyword Matched</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ---- Procedures Tab ---- -->
+  <div class="tab-content" id="tab-procedure">
+    <div class="search-action-bar">
+      <div class="keyword-search-wrapper" id="kw-wrapper-procedure">
+        <span class="search-icon">&#128269;</span>
+        <div class="keyword-chips" id="kw-chips-procedure"></div>
+        <input type="text" id="search-procedure"
+               placeholder="Type keyword + Enter (e.g. cataract, vitrectomy*)"
+               class="keyword-input">
+      </div>
+      <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('procedure')" title="Clear all keywords" style="display:none" id="btn-clear-kw-procedure">&#10005; Clear</button>
+      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('procedure')">&#9733; AI Expand</button>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('procedure')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('procedure')">Uncheck All</button>
+      </div>
+      <button class="btn btn-success" onclick="DictApp.downloadCsv('procedure')" title="Downloads all matching rows. Each row has a desired column (TRUE/FALSE) you can edit.">&#8681; Download Matching Rows</button>
+      <button class="btn btn-crdw" onclick="DictApp.sendToCrdw('procedure')" title="Push SS files directly to the project's GitHub repo">&#9654; Send to CRDW</button>
+    </div>
+    <div class="search-help">
+      <button class="search-help-toggle" onclick="this.parentElement.classList.toggle('open')">
+        How to search <span class="toggle-arrow">&#9660;</span>
+      </button>
+      <div class="search-help-content">
+        <ul>
+          <li><strong>Add a keyword:</strong> Type a word and press <kbd>Enter</kbd> or <kbd>,</kbd> &mdash; it becomes a filter chip.</li>
+          <li><strong>Multiple keywords:</strong> Add as many chips as you need. Rows matching <em>any</em> keyword are shown (OR logic).</li>
+          <li><strong>Wildcard:</strong> Use <code>*</code> for partial matching &mdash; e.g. <code>vitrect*</code> matches "vitrectomy", "vitrectomies", etc.</li>
+          <li><strong>Paste a list:</strong> Paste comma-separated terms and each becomes its own chip.</li>
+          <li><strong>Remove a chip:</strong> Click the &times; on any chip, or press <kbd>Backspace</kbd> when the input is empty.</li>
+          <li><strong>Source:</strong> Date range determines which system is shown. Before 2023-06-03 &rarr; GECB (CPT billing); on or after &rarr; Epic.</li>
+          <li><strong>AI Expand:</strong> Click the <em>&#9733; AI Expand</em> button and describe what you need in plain language (e.g. &ldquo;all cataract and retinal surgery procedures&rdquo;). Requires an API key (see Settings).</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ai-panel" id="ai-panel-procedure">
+      <textarea id="ai-input-procedure" placeholder="Describe what procedures you need, e.g. 'cataract surgery and retinal procedures'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('procedure')">Generate Keywords</button>
+        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('procedure')">Cancel</button>
+        <span class="ai-status" id="ai-status-procedure"></span>
+        <span class="ai-hint">Tip: Include procedure types, CPT descriptions, or surgical specialties.</span>
+      </div>
+    </div>
+    <div class="status-bar" id="status-procedure">
+      <span class="stat">Total in dictionary: <span class="stat-value" id="total-procedure">0</span></span>
+      <span class="stat">Matching filter: <span class="stat-value" id="visible-procedure">0</span></span>
+      <span class="stat">Checked (desired): <span class="desired-count" id="desired-procedure">0</span></span>
+    </div>
+    <table id="table-procedure" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Desired</th>
+          <th>Source</th>
+          <th>Procedure Name</th>
+          <th>Short Name</th>
+          <th>CPT Code</th>
+          <th>Category</th>
+          <th>Vocabulary</th>
           <th>Keyword Matched</th>
         </tr>
       </thead>
