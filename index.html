@@ -53,47 +53,20 @@
         </div>
 
         <div class="settings-divider">
-          <span>OR use a shared team proxy</span>
+          <span>Team Proxy (AI Expand + Send to CRDW)</span>
         </div>
 
         <div class="settings-group">
-          <label for="settings-worker">Team Proxy URL (optional)</label>
-          <input type="url" id="settings-worker" placeholder="https://cdw-dict-proxy.your-team.workers.dev"
+          <label for="settings-worker">Worker URL</label>
+          <input type="url" id="settings-worker" placeholder="https://crdw-sweep-specify.your-account.workers.dev"
                  autocomplete="off">
           <span class="settings-hint">
-            If your team has deployed a shared Cloudflare Worker proxy, paste its URL here.
-            This avoids each researcher needing their own API key.
-            The proxy holds a shared API key server-side.
+            The shared Cloudflare Worker URL. Handles both AI keyword expansion and pushing files
+            to GitHub — no API keys or tokens needed in your browser. Contact the project admin for this URL.
           </span>
         </div>
 
         <div class="settings-status" id="settings-status"></div>
-
-        <div class="settings-divider">
-          <span>Send to CRDW (GitHub)</span>
-        </div>
-
-        <p class="modal-description">
-          Configure GitHub access to push SS files directly to your project's CRDW repo
-          (e.g. <code>data-public/metadata/ss-dx.csv</code>).
-        </p>
-
-        <div class="settings-group">
-          <label for="settings-gh-token">GitHub Personal Access Token</label>
-          <input type="password" id="settings-gh-token" placeholder="ghp_..."
-                 autocomplete="off" spellcheck="false">
-          <span class="settings-hint">
-            Create a token at <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens</a>
-            with <strong>repo</strong> scope. Stored only in your browser.
-          </span>
-        </div>
-
-        <div class="settings-group">
-          <label for="settings-gh-org">GitHub Org / Owner <span style="font-weight:normal;color:#888">(optional)</span></label>
-          <input type="text" id="settings-gh-org" placeholder="OuhscBbmc (default)"
-                 autocomplete="off">
-          <span class="settings-hint">Defaults to <strong>OuhscBbmc</strong>. Only change this if pushing to a different organization.</span>
-        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="DictApp.closeSettings()">Cancel</button>

@@ -440,8 +440,6 @@ const DictApp = (function () {
         document.getElementById('settings-apikey').value = config.apiKey || '';
         document.getElementById('settings-worker').value = config.workerUrl || '';
         document.getElementById('settings-email').value = config.email || '';
-        document.getElementById('settings-gh-token').value = config.ghToken || '';
-        document.getElementById('settings-gh-org').value = config.ghOrg || '';
       } catch (e) { /* ignore */ }
     }
     const statusEl = document.getElementById('settings-status');
@@ -457,14 +455,10 @@ const DictApp = (function () {
     const apiKey = document.getElementById('settings-apikey').value.trim();
     const workerUrl = document.getElementById('settings-worker').value.trim();
     const email = document.getElementById('settings-email').value.trim();
-    const ghToken = document.getElementById('settings-gh-token').value.trim();
-    const ghOrg = document.getElementById('settings-gh-org').value.trim();
     const config = {};
     if (apiKey) config.apiKey = apiKey;
     if (workerUrl) config.workerUrl = workerUrl;
     if (email) config.email = email;
-    if (ghToken) config.ghToken = ghToken;
-    if (ghOrg) config.ghOrg = ghOrg;
     localStorage.setItem('cdw-dict-ai-config', JSON.stringify(config));
     AiExpand.configure(config);
     GitHubPush.configure(config);
@@ -473,7 +467,7 @@ const DictApp = (function () {
     closeSettings();
     var parts = [];
     if (AiExpand.isAvailable()) parts.push('AI Expand ready');
-    if (GitHubPush.isConfigured()) parts.push('GitHub push ready');
+    if (GitHubPush.isConfigured()) parts.push('Send to CRDW ready');
     showToast('Settings saved! ' + (parts.length > 0 ? parts.join(', ') : 'No integrations configured'));
   }
 
@@ -1277,7 +1271,7 @@ const DictApp = (function () {
   // with write access — set it in Settings.
   async function sendToCrdw(type) {
     if (!GitHubPush.isConfigured()) {
-      showToast('GitHub not configured. Go to Settings and enter your GitHub token.');
+      showToast('Not configured. Enter your Worker URL and OU email in Settings.');
       return;
     }
 

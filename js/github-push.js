@@ -1,91 +1,71 @@
 // ============================================================================
 // github-push.js
-// Push SS files to a CRDW project repo via the GitHub Contents API
+// Pushes SS files to the crdw-sweep-specify repo via the Cloudflare Worker.
+// The worker holds the GITHUB_TOKEN secret — no token needed in the browser.
 //
-// Target path: data-public/metadata/{filename}
-// Creates a commit per file (or updates if file already exists)
+// Target path: projects/{projectName}/{filename}
+// Requires: worker URL configured in Settings (same worker used for AI Expand)
+//           and user email (for allowlist check in the worker)
 // ============================================================================
 
 const GitHubPush = (function () {
 
-  let GH_TOKEN = '';
-  let GH_ORG   = 'OuhscBbmc'; // default org; can be overridden via settings
+  let WORKER_URL = '';
+  let USER_EMAIL = '';
 
   function configure(config) {
-    if (config.ghToken) GH_TOKEN = config.ghToken;
-    if (config.ghOrg)   GH_ORG   = config.ghOrg;
+    if (config.workerUrl) WORKER_URL = config.workerUrl;
+    if (config.email)     USER_EMAIL = config.email;
   }
 
   function isConfigured() {
-    // Only a personal access token is required; org defaults to OuhscBbmc
-    return !!GH_TOKEN;
+    return !!(WORKER_URL && USER_EMAIL);
   }
 
   /**
-   * Push a CSV string to a file in the project repo.
+   * Push a single file to the repo via the Cloudflare Worker.
    *
-   * @param {string} repoName    - e.g. "campbell-endometrial-cancer-1"
-   * @param {string} filePath    - e.g. "data-public/metadata/ss-dx.csv"
-   * @param {string} csvContent  - the CSV text
-   * @param {string} commitMsg   - commit message
-   * @returns {Promise<Object>}  - GitHub API response
+   * @param {string} repoName   - ignored (worker targets crdw-sweep-specify)
+   * @param {string} filePath   - e.g. "projects/campbell-1/ss-dx.csv"
+   * @param {string} csvContent - CSV text
+   * @param {string} commitMsg  - commit message
    */
   async function pushFile(repoName, filePath, csvContent, commitMsg) {
-    if (!GH_TOKEN || !GH_ORG) {
-      throw new Error('GitHub not configured. Go to Settings and enter your GitHub token and org.');
+    if (!WORKER_URL) {
+      throw new Error('Worker URL not configured. Enter it in Settings (same URL used for AI Expand).');
+    }
+    if (!USER_EMAIL) {
+      throw new Error('Email not configured. Enter your OU email in Settings.');
     }
 
-    const apiUrl = 'https://api.github.com/repos/' + GH_ORG + '/' + repoName + '/contents/' + filePath;
+    const workerPushUrl = WORKER_URL.replace(/\/+$/, '') + '/github-push';
 
-    // Check if file already exists (need its SHA to update)
-    let existingSha = null;
-    try {
-      var checkResp = await fetch(apiUrl, {
-        headers: {
-          'Authorization': 'Bearer ' + GH_TOKEN,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (checkResp.ok) {
-        var existing = await checkResp.json();
-        existingSha = existing.sha;
-      }
-    } catch (e) {
-      // File doesn't exist yet — that's fine
-    }
-
-    // Base64 encode the CSV content
-    var encoded = btoa(unescape(encodeURIComponent(csvContent)));
-
-    var body = {
-      message: commitMsg,
-      content: encoded
-    };
-    if (existingSha) {
-      body.sha = existingSha;
-    }
-
-    var resp = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'Bearer ' + GH_TOKEN,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+    const response = await fetch(workerPushUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email:     USER_EMAIL,
+        filePath:  filePath,
+        content:   csvContent,
+        commitMsg: commitMsg
+      })
     });
 
-    if (!resp.ok) {
-      var errText = await resp.text();
-      throw new Error('GitHub API error (' + resp.status + '): ' + errText);
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error('Worker error (' + response.status + '): ' + errText);
     }
 
-    return await resp.json();
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    return data;
   }
 
   /**
    * Build CSV content from rows.
-   * Schema is built dynamically from the actual row columns (same as csv-download.js).
+   * Schema is built dynamically from the actual row columns.
    * Internal fields (_*) are excluded; desired/category/keyword_matched are placed last.
    */
   function buildCsvContent(rows) {
@@ -158,10 +138,10 @@ const GitHubPush = (function () {
   }
 
   return {
-    configure: configure,
-    isConfigured: isConfigured,
-    pushFile: pushFile,
-    buildCsvContent: buildCsvContent,
+    configure:            configure,
+    isConfigured:         isConfigured,
+    pushFile:             pushFile,
+    buildCsvContent:      buildCsvContent,
     buildManifestContent: buildManifestContent
   };
 })();
