@@ -63,6 +63,7 @@ const SearchEngine = (function () {
       'medication-epic': ['name', 'generic_name', 'pharmaceutical_class', 'pharmaceutical_subclass', 'therapeutic_class'],
       'medication-meditech': ['medication_name', 'generic', 'medication_mnemonic'],
       'medication-centricity': ['description', 'genericmed'],
+      lab: ['name', 'common_name', 'base_name', 'mnemonic', 'abbreviation', 'loinc'],
       'lab-epic': ['name', 'common_name', 'loinc_code', 'loinc_name'],
       'lab-meditech': ['lab_desc', 'lab_mnemonic', 'abbreviation', 'loinc'],
       'location-epic': ['department_name', 'department_external_name', 'department_specialty', 'location_name', 'department_type'],

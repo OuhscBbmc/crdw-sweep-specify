@@ -220,7 +220,14 @@ body {
 .search-action-bar {
   display: flex;
   gap: 12px;
-  align-items: stretch;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.tab-actions {
+  display: flex;
+  gap: 8px;
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
