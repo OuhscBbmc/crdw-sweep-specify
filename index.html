@@ -136,11 +136,12 @@
       </div>
       <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('dx')" title="Clear all keywords" style="display:none" id="btn-clear-kw-dx">&#10005; Clear</button>
     </div>
-    <div class="search-tools-row">
-      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('dx')">&#9733; AI Expand</button>
-      <div class="bulk-actions">
-        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('dx')">Check All</button>
-        <button class="btn btn-secondary" onclick="DictApp.deselectAll('dx')">Uncheck All</button>
+    <div class="ai-panel visible" id="ai-panel-dx">
+      <textarea id="ai-input-dx" placeholder="Describe what diagnoses you need, e.g. 'all types of diabetes including type 1 and type 2'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('dx')">&#9733; Generate Keywords with AI</button>
+        <span class="ai-status" id="ai-status-dx"></span>
+        <span class="ai-hint">Tip: Be specific about what codes you need. The AI will generate comprehensive search keywords.</span>
       </div>
     </div>
     <div class="tab-actions">
@@ -164,19 +165,16 @@
         </ul>
       </div>
     </div>
-    <div class="ai-panel" id="ai-panel-dx">
-      <textarea id="ai-input-dx" placeholder="Describe what diagnoses you need, e.g. 'all types of diabetes including type 1 and type 2'"></textarea>
-      <div class="ai-actions">
-        <button class="btn btn-ai" onclick="DictApp.runAiExpand('dx')">Generate Keywords</button>
-        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('dx')">Cancel</button>
-        <span class="ai-status" id="ai-status-dx"></span>
-        <span class="ai-hint">Tip: Be specific about what codes you need. The AI will generate comprehensive search keywords.</span>
-      </div>
-    </div>
     <div class="status-bar" id="status-dx">
-      <span class="stat">Total in dictionary: <span class="stat-value" id="total-dx">0</span></span>
-      <span class="stat">Matching filter: <span class="stat-value" id="visible-dx">0</span></span>
-      <span class="stat">Checked (desired): <span class="desired-count" id="desired-dx">0</span></span>
+      <div class="status-stats">
+        <span class="stat">Total in dictionary: <span class="stat-value" id="total-dx">0</span></span>
+        <span class="stat">Matching filter: <span class="stat-value" id="visible-dx">0</span></span>
+        <span class="stat">Checked (desired): <span class="desired-count" id="desired-dx">0</span></span>
+      </div>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('dx')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('dx')">Uncheck All</button>
+      </div>
     </div>
     <table id="table-dx" class="display" style="width:100%">
       <thead>
@@ -206,11 +204,12 @@
       </div>
       <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('medication')" title="Clear all keywords" style="display:none" id="btn-clear-kw-medication">&#10005; Clear</button>
     </div>
-    <div class="search-tools-row">
-      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('medication')">&#9733; AI Expand</button>
-      <div class="bulk-actions">
-        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('medication')">Check All</button>
-        <button class="btn btn-secondary" onclick="DictApp.deselectAll('medication')">Uncheck All</button>
+    <div class="ai-panel visible" id="ai-panel-medication">
+      <textarea id="ai-input-medication" placeholder="Describe what medications you need, e.g. 'all GLP-1 receptor agonists including brand names'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('medication')">&#9733; Generate Keywords with AI</button>
+        <span class="ai-status" id="ai-status-medication"></span>
+        <span class="ai-hint">Tip: Include drug classes, brand names, or therapeutic categories.</span>
       </div>
     </div>
     <div class="tab-actions">
@@ -234,15 +233,6 @@
         </ul>
       </div>
     </div>
-    <div class="ai-panel" id="ai-panel-medication">
-      <textarea id="ai-input-medication" placeholder="Describe what medications you need, e.g. 'all GLP-1 receptor agonists including brand names'"></textarea>
-      <div class="ai-actions">
-        <button class="btn btn-ai" onclick="DictApp.runAiExpand('medication')">Generate Keywords</button>
-        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('medication')">Cancel</button>
-        <span class="ai-status" id="ai-status-medication"></span>
-        <span class="ai-hint">Tip: Include drug classes, brand names, or therapeutic categories.</span>
-      </div>
-    </div>
     <div class="med-filters" id="med-filters">
       <div>
         <label for="filter-pharm-class">Route</label>
@@ -264,9 +254,15 @@
       </div>
     </div>
     <div class="status-bar" id="status-medication">
-      <span class="stat">Total in dictionary: <span class="stat-value" id="total-medication">0</span></span>
-      <span class="stat">Matching filter: <span class="stat-value" id="visible-medication">0</span></span>
-      <span class="stat">Checked (desired): <span class="desired-count" id="desired-medication">0</span></span>
+      <div class="status-stats">
+        <span class="stat">Total in dictionary: <span class="stat-value" id="total-medication">0</span></span>
+        <span class="stat">Matching filter: <span class="stat-value" id="visible-medication">0</span></span>
+        <span class="stat">Checked (desired): <span class="desired-count" id="desired-medication">0</span></span>
+      </div>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('medication')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('medication')">Uncheck All</button>
+      </div>
     </div>
     <table id="table-medication" class="display" style="width:100%">
       <thead>
@@ -298,11 +294,12 @@
       </div>
       <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('lab')" title="Clear all keywords" style="display:none" id="btn-clear-kw-lab">&#10005; Clear</button>
     </div>
-    <div class="search-tools-row">
-      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('lab')">&#9733; AI Expand</button>
-      <div class="bulk-actions">
-        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('lab')">Check All</button>
-        <button class="btn btn-secondary" onclick="DictApp.deselectAll('lab')">Uncheck All</button>
+    <div class="ai-panel visible" id="ai-panel-lab">
+      <textarea id="ai-input-lab" placeholder="Describe what lab values you need, e.g. 'complete metabolic panel' or 'renal function labs'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('lab')">&#9733; Generate Keywords with AI</button>
+        <span class="ai-status" id="ai-status-lab"></span>
+        <span class="ai-hint">Tip: Use panel names (CBC, CMP) and the AI will expand to all analytes.</span>
       </div>
     </div>
     <div class="tab-actions">
@@ -326,19 +323,16 @@
         </ul>
       </div>
     </div>
-    <div class="ai-panel" id="ai-panel-lab">
-      <textarea id="ai-input-lab" placeholder="Describe what lab values you need, e.g. 'complete metabolic panel' or 'renal function labs'"></textarea>
-      <div class="ai-actions">
-        <button class="btn btn-ai" onclick="DictApp.runAiExpand('lab')">Generate Keywords</button>
-        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('lab')">Cancel</button>
-        <span class="ai-status" id="ai-status-lab"></span>
-        <span class="ai-hint">Tip: Use panel names (CBC, CMP) and the AI will expand to all analytes.</span>
-      </div>
-    </div>
     <div class="status-bar" id="status-lab">
-      <span class="stat">Total in dictionary: <span class="stat-value" id="total-lab">0</span></span>
-      <span class="stat">Matching filter: <span class="stat-value" id="visible-lab">0</span></span>
-      <span class="stat">Checked (desired): <span class="desired-count" id="desired-lab">0</span></span>
+      <div class="status-stats">
+        <span class="stat">Total in dictionary: <span class="stat-value" id="total-lab">0</span></span>
+        <span class="stat">Matching filter: <span class="stat-value" id="visible-lab">0</span></span>
+        <span class="stat">Checked (desired): <span class="desired-count" id="desired-lab">0</span></span>
+      </div>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('lab')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('lab')">Uncheck All</button>
+      </div>
     </div>
     <table id="table-lab" class="display" style="width:100%">
       <thead>
@@ -370,11 +364,12 @@
       </div>
       <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('location')" title="Clear all keywords" style="display:none" id="btn-clear-kw-location">&#10005; Clear</button>
     </div>
-    <div class="search-tools-row">
-      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('location')">&#9733; AI Expand</button>
-      <div class="bulk-actions">
-        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('location')">Check All</button>
-        <button class="btn btn-secondary" onclick="DictApp.deselectAll('location')">Uncheck All</button>
+    <div class="ai-panel visible" id="ai-panel-location">
+      <textarea id="ai-input-location" placeholder="Describe what locations you need, e.g. 'all cardiology clinics and cardiac units'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('location')">&#9733; Generate Keywords with AI</button>
+        <span class="ai-status" id="ai-status-location"></span>
+        <span class="ai-hint">Tip: Describe the specialty, department type, or location names you need.</span>
       </div>
     </div>
     <div class="tab-actions">
@@ -398,19 +393,16 @@
         </ul>
       </div>
     </div>
-    <div class="ai-panel" id="ai-panel-location">
-      <textarea id="ai-input-location" placeholder="Describe what locations you need, e.g. 'all cardiology clinics and cardiac units'"></textarea>
-      <div class="ai-actions">
-        <button class="btn btn-ai" onclick="DictApp.runAiExpand('location')">Generate Keywords</button>
-        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('location')">Cancel</button>
-        <span class="ai-status" id="ai-status-location"></span>
-        <span class="ai-hint">Tip: Describe the specialty, department type, or location names you need.</span>
-      </div>
-    </div>
     <div class="status-bar" id="status-location">
-      <span class="stat">Total in dictionary: <span class="stat-value" id="total-location">0</span></span>
-      <span class="stat">Matching filter: <span class="stat-value" id="visible-location">0</span></span>
-      <span class="stat">Checked (desired): <span class="desired-count" id="desired-location">0</span></span>
+      <div class="status-stats">
+        <span class="stat">Total in dictionary: <span class="stat-value" id="total-location">0</span></span>
+        <span class="stat">Matching filter: <span class="stat-value" id="visible-location">0</span></span>
+        <span class="stat">Checked (desired): <span class="desired-count" id="desired-location">0</span></span>
+      </div>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('location')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('location')">Uncheck All</button>
+      </div>
     </div>
     <table id="table-location" class="display" style="width:100%">
       <thead>
@@ -441,11 +433,12 @@
       </div>
       <button class="btn btn-secondary btn-clear-kw" onclick="DictApp.clearKeywords('procedure')" title="Clear all keywords" style="display:none" id="btn-clear-kw-procedure">&#10005; Clear</button>
     </div>
-    <div class="search-tools-row">
-      <button class="btn btn-ai" onclick="DictApp.toggleAiPanel('procedure')">&#9733; AI Expand</button>
-      <div class="bulk-actions">
-        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('procedure')">Check All</button>
-        <button class="btn btn-secondary" onclick="DictApp.deselectAll('procedure')">Uncheck All</button>
+    <div class="ai-panel visible" id="ai-panel-procedure">
+      <textarea id="ai-input-procedure" placeholder="Describe what procedures you need, e.g. 'cataract surgery and retinal procedures'"></textarea>
+      <div class="ai-actions">
+        <button class="btn btn-ai" onclick="DictApp.runAiExpand('procedure')">&#9733; Generate Keywords with AI</button>
+        <span class="ai-status" id="ai-status-procedure"></span>
+        <span class="ai-hint">Tip: Include procedure types, CPT descriptions, or surgical specialties.</span>
       </div>
     </div>
     <div class="tab-actions">
@@ -468,19 +461,16 @@
         </ul>
       </div>
     </div>
-    <div class="ai-panel" id="ai-panel-procedure">
-      <textarea id="ai-input-procedure" placeholder="Describe what procedures you need, e.g. 'cataract surgery and retinal procedures'"></textarea>
-      <div class="ai-actions">
-        <button class="btn btn-ai" onclick="DictApp.runAiExpand('procedure')">Generate Keywords</button>
-        <button class="btn btn-secondary" onclick="DictApp.toggleAiPanel('procedure')">Cancel</button>
-        <span class="ai-status" id="ai-status-procedure"></span>
-        <span class="ai-hint">Tip: Include procedure types, CPT descriptions, or surgical specialties.</span>
-      </div>
-    </div>
     <div class="status-bar" id="status-procedure">
-      <span class="stat">Total in dictionary: <span class="stat-value" id="total-procedure">0</span></span>
-      <span class="stat">Matching filter: <span class="stat-value" id="visible-procedure">0</span></span>
-      <span class="stat">Checked (desired): <span class="desired-count" id="desired-procedure">0</span></span>
+      <div class="status-stats">
+        <span class="stat">Total in dictionary: <span class="stat-value" id="total-procedure">0</span></span>
+        <span class="stat">Matching filter: <span class="stat-value" id="visible-procedure">0</span></span>
+        <span class="stat">Checked (desired): <span class="desired-count" id="desired-procedure">0</span></span>
+      </div>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" onclick="DictApp.selectAllVisible('procedure')">Check All</button>
+        <button class="btn btn-secondary" onclick="DictApp.deselectAll('procedure')">Uncheck All</button>
+      </div>
     </div>
     <table id="table-procedure" class="display" style="width:100%">
       <thead>

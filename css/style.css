@@ -225,14 +225,6 @@ body {
   flex-wrap: wrap;
 }
 
-.search-tools-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
 .tab-actions {
   display: flex;
   gap: 8px;
@@ -697,10 +689,17 @@ td.category-cell input[type="text"]:focus {
   display: flex;
   gap: 16px;
   align-items: center;
+  justify-content: space-between;
   padding: 8px 0;
   margin-bottom: 8px;
   font-size: 0.85rem;
   color: var(--gray-600);
+}
+
+.status-bar .status-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
 .status-bar .stat {
