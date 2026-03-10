@@ -1209,21 +1209,21 @@ const DictApp = (function () {
       return;
     }
 
-    // Group by source system for per-system CSV files
-    var bySource = {};
-    matchingData.forEach(function (row) {
-      var src = row._source || 'cdw';
-      if (!bySource[src]) bySource[src] = [];
-      bySource[src].push(row);
-    });
-
     var desiredCount = matchingData.filter(function (r) { return r.desired; }).length;
     var totalCount = matchingData.length;
 
     // 1. Download the data CSV(s)
-    if (type === 'dx') {
-      var result = CsvDownload.download(matchingData, 'dx', null, projectName, false);
+    // dx and medication use a single combined file; other types split by source system
+    if (type === 'dx' || type === 'medication') {
+      var result = CsvDownload.download(matchingData, type, null, projectName, false);
     } else {
+      // Group by source system for per-system CSV files
+      var bySource = {};
+      matchingData.forEach(function (row) {
+        var src = row._source || 'cdw';
+        if (!bySource[src]) bySource[src] = [];
+        bySource[src].push(row);
+      });
       var results = CsvDownload.downloadAll(bySource, type, projectName, false);
     }
 
@@ -1249,7 +1249,7 @@ const DictApp = (function () {
     }
 
     // 3. Toast summary
-    if (type === 'dx') {
+    if (type === 'dx' || type === 'medication') {
       if (result) {
         var msg = 'Downloaded ' + result.filename + ' (' + totalCount + ' rows, ' + desiredCount + ' marked desired)';
         if (keywords.length > 0) msg += ' + search-terms manifest';
