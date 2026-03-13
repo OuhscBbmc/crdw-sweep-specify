@@ -53,16 +53,17 @@ CRITICAL RULES:
       dx: `
 You are generating search keywords to match ICD-10-CM code descriptions in a clinical data warehouse.
 The dictionary contains the literal text of ICD-10-CM descriptions (e.g. "Malignant neoplasm of breast").
-Keywords are matched as substrings against those descriptions.
+Each keyword you return is matched using AND logic: every word in the keyword must appear somewhere in the description.
+So "neoplasm breast" matches "Malignant neoplasm of breast" because the row contains both "neoplasm" AND "breast".
 
 RULES FOR DX KEYWORDS:
-- Use formal ICD-10-CM terminology that uniquely identifies the disease or diagnosis
-- Include the disease name, anatomical site, and histology/morphology terms as they appear in ICD descriptions
-- DO NOT include: laterality (right, left, bilateral), generic qualifiers (unspecified, in situ, acute, chronic, primary, secondary, with complications, without complications), or common words that appear across many unrelated diagnoses
-- Do NOT include abbreviations, clinical slang, or lay terms
-- Focus on the words that distinguish THIS diagnosis from others
-- Example: "breast cancer" → malignant neoplasm, breast, carcinoma, adenocarcinoma, nipple, areola, axillary tail
-- Example: "type 2 diabetes" → diabetes mellitus, type 2, diabetic`,
+- Return MULTI-WORD phrases that combine the disease/histology term WITH the anatomical site (e.g. "neoplasm breast", "carcinoma breast", "diabetes mellitus type 2")
+- This ensures each keyword is precise and won't over-match unrelated diagnoses
+- Use words as they appear in ICD-10-CM descriptions (formal terminology, not abbreviations or slang)
+- Do NOT return single generic words alone (e.g. do not return just "breast" or just "neoplasm" — combine them)
+- Do NOT include laterality (right, left, bilateral) or overly generic qualifiers (unspecified, acute, chronic)
+- Example: "breast cancer" → neoplasm breast, carcinoma breast, adenocarcinoma breast, neoplasm nipple, neoplasm areola, neoplasm axillary tail
+- Example: "type 2 diabetes" → diabetes mellitus type 2, diabetic type 2`,
 
       medication: `
 You are generating medication search keywords.
