@@ -208,25 +208,26 @@ const DictApp = (function () {
    */
   function buildMatcher(keyword) {
     const kw = keyword.toLowerCase().trim();
-    const startsWithStar = kw.startsWith('*');
-    const endsWithStar = kw.endsWith('*');
     const core = kw.replace(/^\*+|\*+$/g, '');
 
     if (!core) return () => false;
 
-    if (startsWithStar && endsWithStar) {
-      // *term* → contains
-      return (val) => val.includes(core);
-    } else if (endsWithStar) {
-      // term* → starts with (word-boundary aware: also matches mid-string word starts)
-      return (val) => val.includes(core);
-    } else if (startsWithStar) {
-      // *term → ends with
-      return (val) => val.includes(core);
-    } else {
-      // no wildcard → contains (LIKE '%term%')
-      return (val) => val.includes(core);
+    // Multi-word phrase: split on whitespace and require ALL words to appear
+    // somewhere in the row (AND logic across words, OR logic across cells).
+    // e.g. "neoplasm breast" matches any row containing both words.
+    const words = core.split(/\s+/).filter(w => w);
+    if (words.length > 1) {
+      return function (rowValues) {
+        return words.every(function (word) {
+          return rowValues.some(function (val) { return val.includes(word); });
+        });
+      };
     }
+
+    // Single word — check if any cell in the row contains it
+    return function (rowValues) {
+      return rowValues.some(function (val) { return val.includes(core); });
+    };
   }
 
   /**
@@ -276,10 +277,8 @@ const DictApp = (function () {
       // searchData is an array of the rendered column values (strings)
       const rowText = searchData.map(s => (s || '').toLowerCase());
 
-      // OR logic: match if ANY keyword matches ANY column text
-      return matchers.some(matcher => {
-        return rowText.some(cellText => matcher(cellText));
-      });
+      // OR logic across chips; within a multi-word chip, AND logic across words
+      return matchers.some(matcher => matcher(rowText));
     };
     filterFn._kwFilterType = type;
     $.fn.dataTable.ext.search.push(filterFn);
@@ -324,9 +323,7 @@ const DictApp = (function () {
           return !k.startsWith('_') && k !== 'desired' && k !== 'category' && k !== 'keyword_matched';
         })
         .map(function (k) { return (row[k] || '').toString().toLowerCase(); });
-      return matchers.some(function (matcher) {
-        return rowValues.some(function (val) { return matcher(val); });
-      });
+      return matchers.some(function (matcher) { return matcher(rowValues); });
     });
 
     // Auto-desire every matched row and record which keyword triggered the match
@@ -341,7 +338,7 @@ const DictApp = (function () {
         .map(function (k) { return (row[k] || '').toString().toLowerCase(); });
       var matchedKw = '';
       for (var i = 0; i < kwMatchers.length; i++) {
-        if (rowValues.some(function (val) { return kwMatchers[i].matcher(val); })) {
+        if (kwMatchers[i].matcher(rowValues)) {
           matchedKw = kwMatchers[i].keyword;
           break;
         }
@@ -380,7 +377,7 @@ const DictApp = (function () {
       const rowValues = Object.values(row).map(v => (v || '').toString().toLowerCase());
       let matchedKw = '';
       for (const { keyword, matcher } of matchers) {
-        if (rowValues.some(val => matcher(val))) {
+        if (matcher(rowValues)) {
           matchedKw = keyword;
           break;
         }
